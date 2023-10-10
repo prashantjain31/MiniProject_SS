@@ -8,7 +8,9 @@ struct Course {
     int cTotalSeats;
     int cCurrentAvailableSeats;
     int fId;
+    bool active;
     int cCredits;
+    char databasePath[50];
 };
 
 #endif

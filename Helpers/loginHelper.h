@@ -15,6 +15,7 @@
 #include "../Models/faculty_struct.h"
 #include "../Models/course_struct.h"
 #include "../Helpers/constantStrings.h"
+#include "../Helpers/adminCredentials.h"
 
 bool loginHandler(int connectionFD, int loginType) {
     char readBuf[1000], writeBuf[1000], tempBuf[1000];
@@ -23,7 +24,6 @@ bool loginHandler(int connectionFD, int loginType) {
     bzero(readBuf, sizeof(readBuf));
     bzero(writeBuf, sizeof(writeBuf));
 
-    // Get login message for respective user type
     if(loginType == 1) strcpy(writeBuf, WELCOME_STUDENT);
     else if(loginType == 2) strcpy(writeBuf, WELCOME_PROFESSOR);
     else strcpy(writeBuf, WELCOME_ADMIN);
@@ -61,11 +61,12 @@ bool loginHandler(int connectionFD, int loginType) {
     }
 
     if(loginType == 1) {
-        printf("Student id: %s and password: %s\n", tempBuf, readBuf);
+        return true;
     } else if(loginType == 2) {
-        printf("Professor id: %s and password: %s\n", tempBuf, readBuf);
+        return true;
     } else {
-        printf("Admin id: %s and password: %s\n", tempBuf, readBuf);
+        if(strcmp(tempBuf, SUPERID) == 0&& strcmp(readBuf, SUPERPASSWORD) == 0) return true;
+        else return false;
     }
 
     return true;

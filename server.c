@@ -18,7 +18,7 @@
 #include "./Controllers/AdminController.h"
 
 
-void connection_handler(int clientConnectionFD) {
+void connectionHandler(int clientConnectionFD) {
     printf("Client has connected to the server!\n");
 
     char readBuf[1000], writeBuf[1000];
@@ -26,18 +26,18 @@ void connection_handler(int clientConnectionFD) {
     int userChoice;
 
     writeBytes = write(clientConnectionFD, HOMEPAGE, strlen(HOMEPAGE));
-    if (writeBytes == -1)
+    if(writeBytes == -1)
         perror("!! Error while sending first prompt to the user !!");
     else {
         bzero(readBuf, sizeof(readBuf));
         readBytes = read(clientConnectionFD, readBuf, sizeof(readBuf));
-        if (readBytes == -1)
+        if(readBytes == -1)
             perror("!! Error while reading from client !!");
-        else if (readBytes == 0)
+        else if(readBytes == 0)
             printf("No data was sent by the client\n");
         else {
             userChoice = atoi(readBuf);
-            switch (userChoice) {
+            switch(userChoice) {
             case 1:
                 // Student
                 rootStudentController(clientConnectionFD);
@@ -95,7 +95,7 @@ void main() {
         } else {
             if(!fork()) {
                 close(socketFD);
-                connection_handler(clientConnectionFD);
+                connectionHandler(clientConnectionFD);
                 _exit(0);
             } else {
                 close(clientConnectionFD);

@@ -9,7 +9,7 @@
 
 #include "./Helpers/constantStrings.h"
 
-void connection_handler(int socketFD) {
+void connectionHandler(int socketFD) {
     char readBuf[1000];
     char writeBuf[1000];
     ssize_t readBytes, writeBytes;
@@ -19,13 +19,16 @@ void connection_handler(int socketFD) {
         bzero(readBuf, sizeof(readBuf));
         bzero(writeBuf, sizeof(writeBuf));
         readBytes = read(socketFD, readBuf, sizeof(readBuf));
-        if (readBytes == -1)
+        if(readBytes == -1)
             perror("!! Error while reading from connection !!");
         else if(readBytes == 0)
             printf("Closing the connection to the server!\n");
         else {
             if(strchr(readBuf, '*') != NULL) {
                 strcpy(writeBuf, getpass(LOGIN_PASS_MESSAGE));
+            } else if (strchr(readBuf, '&') != NULL) {
+                printf("%s", WRONG);
+                break;
             } else {
                 printf("%s", readBuf);
                 scanf("%[^\n]%*c", writeBuf);
@@ -48,7 +51,7 @@ void main() {
     struct sockaddr_in serverAddress;
 
     socketFD = socket(AF_INET, SOCK_STREAM, 0);
-    if (socketFD == -1) {
+    if(socketFD == -1) {
         perror("!! Error while creating server socket !!");
         _exit(0);
     }
@@ -58,13 +61,13 @@ void main() {
     serverAddress.sin_addr.s_addr = htonl(INADDR_ANY);
 
     connectionStatus = connect(socketFD, (struct sockaddr *) &serverAddress, sizeof(serverAddress));
-    if (connectionStatus == -1) {
+    if(connectionStatus == -1) {
         perror("!! Error while connecting to server !!");
         close(socketFD);
         _exit(0);
     }
 
-    connection_handler(socketFD);
+    connectionHandler(socketFD);
 
     close(socketFD);
 }

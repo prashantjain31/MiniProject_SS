@@ -8,6 +8,7 @@ struct Faculty {
     char fDepartment[10];
     char fAddress[100];
     char fPassword[50];
+    bool active;
 };
 
 #endif

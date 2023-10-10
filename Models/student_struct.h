@@ -3,11 +3,12 @@
 
 struct Student {
     int sId;
+    char sRollNo[20];
     char sName[50];
-    char sLogin[20];
     char sAddress[100];
     char sPassword[50];
     int sAge;
+    bool active;
 };
 
 #endif
