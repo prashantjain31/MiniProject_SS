@@ -16,6 +16,8 @@
 #include "../Helpers/constantStrings.h"
 #include "../Helpers/loginHelper.h"
 #include "../Helpers/readWriteHelper.h"
+#include "../Helpers/listStudentsHelper.h"
+#include "../Helpers/listFacultyHelper.h"
 
 void addStudent(int clientConnectionFD) {
 
@@ -127,7 +129,9 @@ void viewStudent(int clientConnectionFD) {
     bzero(readBuf, sizeof(readBuf));
     bzero(writeBuf, sizeof(writeBuf));
 
-    strcpy(writeBuf, "Enter the student roll number: ");
+    listStudents(clientConnectionFD, writeBuf, sizeof(writeBuf));
+
+    strcat(writeBuf, "Enter the student roll number: ");
     if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
     char rollnumber[20];
     strcpy(rollnumber, readBuf);
@@ -136,7 +140,7 @@ void viewStudent(int clientConnectionFD) {
     strcpy(databaseFile, "./database/");
     strcat(databaseFile, STUDENT_DATABASE);
 
-    int studentFD = open(databaseFile, O_CREAT | O_RDWR | O_APPEND, 0777);
+    int studentFD = open(databaseFile, O_CREAT | O_RDONLY, 0777);
     if(studentFD == -1) {
         perror("!! Error while opening student database file !!");
 
@@ -182,7 +186,9 @@ void activateStudent(int clientConnectionFD) {
     bzero(readBuf, sizeof(readBuf));
     bzero(writeBuf, sizeof(writeBuf));
 
-    strcpy(writeBuf, "Enter the student roll number: ");
+    listStudents(clientConnectionFD, writeBuf, sizeof(writeBuf));
+
+    strcat(writeBuf, "Enter the student roll number: ");
     if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
     char rollnumber[20];
     strcpy(rollnumber, readBuf);
@@ -251,7 +257,9 @@ void blockStudent(int clientConnectionFD) {
     bzero(readBuf, sizeof(readBuf));
     bzero(writeBuf, sizeof(writeBuf));
 
-    strcpy(writeBuf, "Enter the student roll number: ");
+    listStudents(clientConnectionFD, writeBuf, sizeof(writeBuf));
+
+    strcat(writeBuf, "Enter the student roll number: ");
     if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
     char rollnumber[20];
     strcpy(rollnumber, readBuf);
@@ -320,7 +328,372 @@ void modifyStudent(int clientConnectionFD) {
     bzero(readBuf, sizeof(readBuf));
     bzero(writeBuf, sizeof(writeBuf));
 
+    listStudents(clientConnectionFD, writeBuf, sizeof(writeBuf));
+
+    strcat(writeBuf, "Enter the student roll number: ");
+    if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
+    char rollnumber[20];
+    strcpy(rollnumber, readBuf);
     
+    char databaseFile[50];
+    strcpy(databaseFile, "./database/");
+    strcat(databaseFile, STUDENT_DATABASE);
+
+    int studentFD = open(databaseFile, O_CREAT | O_RDWR, 0777);
+    if(studentFD == -1) {
+        perror("!! Error while opening student database file !!");
+
+        bzero(writeBuf, sizeof(writeBuf));
+        strcpy(writeBuf, "&");
+
+        writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
+        if(writeBytes == -1) {
+            perror("!! Error while writing logout message to client !!");
+            return;
+        }
+        return;
+    }
+
+    struct Student student;
+    while((readBytes = read(studentFD, &student, sizeof(student))) != 0) {
+        if(strcmp(student.sRollNo, rollnumber) == 0) break;
+    }
+
+    bzero(writeBuf, sizeof(writeBuf));
+    if(readBytes == 0) {    
+        sprintf(writeBuf, "Couldn't find Student with Roll Number: %s\n", rollnumber);
+        writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
+        if(writeBytes == -1) {
+            perror("!! Error while sending the student details to client !!");
+            close(studentFD);
+            return;
+        }
+        close(studentFD);
+        return;
+    }
+
+    bzero(writeBuf, sizeof(writeBuf));
+    strcpy(writeBuf, "Want to modify the Name of student? (Enter y or n): ");
+    if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
+    if(strcmp(readBuf, "y") == 0) {
+        bzero(writeBuf, sizeof(writeBuf));
+        strcpy(writeBuf, "Enter the new name: ");
+        if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
+        strcpy(student.sName, readBuf);
+    }
+
+    bzero(writeBuf, sizeof(writeBuf));
+    strcpy(writeBuf, "Want to modify the Address of student? (Enter y or n): ");
+    if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
+    if(strcmp(readBuf, "y") == 0) {
+        bzero(writeBuf, sizeof(writeBuf));
+        strcpy(writeBuf, "Enter the new address: ");
+        if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
+        strcpy(student.sAddress, readBuf);
+    }
+
+    bzero(writeBuf, sizeof(writeBuf));
+    strcpy(writeBuf, "Want to modify the Age of student? (Enter y or n): ");
+    if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
+    if(strcmp(readBuf, "y") == 0) {
+        bzero(writeBuf, sizeof(writeBuf));
+        strcpy(writeBuf, "Enter the new age: ");
+        if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
+        student.sAge = atoi(readBuf);
+    }
+
+    bzero(writeBuf, sizeof(writeBuf));
+    strcpy(writeBuf, "Want to modify the DEGREE TYPE of student? (Enter y or n): ");
+    if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
+    if(strcmp(readBuf, "y") == 0) {
+        bzero(writeBuf, sizeof(writeBuf));
+        strcpy(writeBuf, "Enter the new DEGREE TYPE: ");
+        if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
+        bzero(student.sRollNo, sizeof(student.sRollNo));
+        strcpy(student.sRollNo, readBuf);
+        bzero(readBuf, sizeof(readBuf));
+        sprintf(readBuf, "%d", student.sId);
+        strcat(student.sRollNo, readBuf);
+    }
+
+    lseek(studentFD, -1*sizeof(student), SEEK_CUR);
+    writeBytes = write(studentFD, &student, sizeof(student));
+    if(writeBytes == -1) {
+        perror("!! Error while writing the student details to database !!");
+        close(studentFD);
+        return;
+    }
+
+    bzero(writeBuf, sizeof(writeBuf));
+    strcpy(writeBuf, "Successfully updated the student details\n");
+    writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
+    if(writeBytes == -1) {
+        perror("!! Error while sending the student details to client !!");
+    }
+
+    close(studentFD);
+    return;
+}
+
+void addFaculty(int clientConnectionFD) {
+
+    char readBuf[1000], writeBuf[1000];
+    ssize_t readBytes, writeBytes;
+
+    bzero(readBuf, sizeof(readBuf));
+    bzero(writeBuf, sizeof(writeBuf));
+
+    struct Faculty newFaculty;
+
+    strcpy(writeBuf, "Enter the faculty name: ");
+    if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
+    strcpy(newFaculty.fName, readBuf);
+
+    bzero(writeBuf, sizeof(writeBuf));
+    strcpy(writeBuf, "Enter the faculty's address: ");
+    if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
+    strcpy(newFaculty.fAddress, readBuf);
+
+    bzero(writeBuf, sizeof(writeBuf));
+    strcpy(writeBuf, "Enter the department(CSE, ECE etc): ");
+    if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
+    strcpy(newFaculty.fDepartment, readBuf);
+
+    char trackFile[50];
+    strcpy(trackFile, "./database/");
+    strcat(trackFile, TRACK_FILE);
+    int trackFD = open(trackFile, O_CREAT | O_RDWR, 0777);
+    if(trackFD == -1) {
+        perror("!! Error while opening track database file !!");
+
+        bzero(writeBuf, sizeof(writeBuf));
+        strcpy(writeBuf, "&");
+
+        writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
+        if(writeBytes == -1) {
+            perror("!! Error while writing logout message to client !!");
+            return;
+        }
+        return;
+    }
+
+    struct Track track;
+    lseek(trackFD, 1*sizeof(track), SEEK_SET);
+    readBytes = read(trackFD, &track, sizeof(track));
+    if(strcmp(track.name, FACULTY) != 0) return;
+    newFaculty.fId = track.uid;
+    track.uid++;
+
+    lseek(trackFD, 1*sizeof(track), SEEK_SET);
+    write(trackFD, &track, sizeof(track));
+
+    bzero(readBuf, sizeof(readBuf));
+    sprintf(readBuf, "%d", newFaculty.fId);
+    strcpy(newFaculty.fLogin, newFaculty.fDepartment);
+    strcat(newFaculty.fLogin, readBuf);
+
+    newFaculty.active = true;
+
+    strcpy(newFaculty.fPassword, DEFAULT_PASS);
+
+    char databaseFile[50];
+    strcpy(databaseFile, "./database/");
+    strcat(databaseFile, FACULTY_DATABASE);
+
+    int facultyFD = open(databaseFile, O_CREAT | O_RDWR | O_APPEND, 0777);
+    if(facultyFD == -1) {
+        perror("!! Error while opening faculty database file !!");
+
+        bzero(writeBuf, sizeof(writeBuf));
+        strcpy(writeBuf, "&");
+
+        writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
+        if(writeBytes == -1) {
+            perror("!! Error while writing logout message to client !!");
+            return;
+        }
+        return;
+    }
+
+    writeBytes = write(facultyFD, &newFaculty, sizeof(newFaculty));
+    if(writeBytes == -1) {
+        perror("!! Error while writing faculty to databasse !!");
+        close(trackFD);
+        close(facultyFD);
+        return;
+    }
+
+    bzero(writeBuf, sizeof(writeBuf));
+    sprintf(writeBuf, "Faculty Added Successfully with login id: %s\n", newFaculty.fLogin);
+    writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
+    if(writeBytes == -1) {
+        perror("!! Error while reporting the response !!");
+    }
+
+    close(trackFD);
+    close(facultyFD);
+    return;
+}
+
+void viewFaculty(int clientConnectionFD) {
+    char readBuf[1000], writeBuf[1000];
+    ssize_t readBytes, writeBytes;
+
+    bzero(readBuf, sizeof(readBuf));
+    bzero(writeBuf, sizeof(writeBuf));
+
+    listFaculty(clientConnectionFD, writeBuf, sizeof(writeBuf));
+
+    strcat(writeBuf, "Enter the faculty login id: ");
+    if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
+    char login[20];
+    strcpy(login, readBuf);
+    
+    char databaseFile[50];
+    strcpy(databaseFile, "./database/");
+    strcat(databaseFile, FACULTY_DATABASE);
+
+    int facultyFD = open(databaseFile, O_CREAT | O_RDONLY, 0777);
+    if(facultyFD == -1) {
+        perror("!! Error while opening faculty database file !!");
+
+        bzero(writeBuf, sizeof(writeBuf));
+        strcpy(writeBuf, "&");
+
+        writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
+        if(writeBytes == -1) {
+            perror("!! Error while writing logout message to client !!");
+            return;
+        }
+        return;
+    }
+
+    struct Faculty faculty;
+    while((readBytes = read(facultyFD, &faculty, sizeof(faculty))) != 0) {
+        if(strcmp(faculty.fLogin, login) == 0) break;
+    }
+
+    bzero(writeBuf, sizeof(writeBuf));
+    if(readBytes == 0) {    
+        sprintf(writeBuf, "Couldn't find faculty with login: %s\n", login);
+    } else {
+        sprintf(writeBuf, "----- Faculty Details -----\nName: %s\nAddress: %s\nLogin: %s\nDepartment: %s\nActive Status(1 = Active and 0 = Blocked): %d", 
+            faculty.fName, faculty.fAddress, faculty.fLogin, faculty.fDepartment, faculty.active);
+    }
+
+    writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
+    if(writeBytes == -1) {
+        perror("!! Error while sending the faculty details to client !!");
+        close(facultyFD);
+        return;
+    }
+
+    close(facultyFD);
+    return;
+}
+
+void modifyFaculty(int clientConnectionFD) {
+    char readBuf[1000], writeBuf[1000];
+    ssize_t readBytes, writeBytes;
+
+    bzero(readBuf, sizeof(readBuf));
+    bzero(writeBuf, sizeof(writeBuf));
+
+    listFaculty(clientConnectionFD, writeBuf, sizeof(writeBuf));
+
+    strcat(writeBuf, "Enter the faculty login id: ");
+    if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
+    char login[20];
+    strcpy(login, readBuf);
+    
+    char databaseFile[50];
+    strcpy(databaseFile, "./database/");
+    strcat(databaseFile, FACULTY_DATABASE);
+
+    int facultyFD = open(databaseFile, O_CREAT | O_RDWR, 0777);
+    if(facultyFD == -1) {
+        perror("!! Error while opening faculty database file !!");
+
+        bzero(writeBuf, sizeof(writeBuf));
+        strcpy(writeBuf, "&");
+
+        writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
+        if(writeBytes == -1) {
+            perror("!! Error while writing logout message to client !!");
+            return;
+        }
+        return;
+    }
+
+    struct Faculty faculty;
+    while((readBytes = read(facultyFD, &faculty, sizeof(faculty))) != 0) {
+        if(strcmp(faculty.fLogin, login) == 0) break;
+    }
+
+    bzero(writeBuf, sizeof(writeBuf));
+    if(readBytes == 0) {    
+        sprintf(writeBuf, "Couldn't find Faculty with login id: %s\n", login);
+        writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
+        if(writeBytes == -1) {
+            perror("!! Error while sending the faculty details to client !!");
+        }
+        close(facultyFD);
+        return;
+    }
+
+    bzero(writeBuf, sizeof(writeBuf));
+    strcpy(writeBuf, "Want to modify the Name of faculty? (Enter y or n): ");
+    if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
+    if(strcmp(readBuf, "y") == 0) {
+        bzero(writeBuf, sizeof(writeBuf));
+        strcpy(writeBuf, "Enter the new name: ");
+        if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
+        strcpy(faculty.fName, readBuf);
+    }
+
+    bzero(writeBuf, sizeof(writeBuf));
+    strcpy(writeBuf, "Want to modify the Address of faculty? (Enter y or n): ");
+    if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
+    if(strcmp(readBuf, "y") == 0) {
+        bzero(writeBuf, sizeof(writeBuf));
+        strcpy(writeBuf, "Enter the new address: ");
+        if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
+        strcpy(faculty.fAddress, readBuf);
+    }
+
+    bzero(writeBuf, sizeof(writeBuf));
+    strcpy(writeBuf, "Want to modify the Department of faculty? (Enter y or n): ");
+    if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
+    if(strcmp(readBuf, "y") == 0) {
+        bzero(writeBuf, sizeof(writeBuf));
+        strcpy(writeBuf, "Enter the new DEPARTMENT: ");
+        if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
+        bzero(faculty.fDepartment, sizeof(faculty.fDepartment));
+        strcpy(faculty.fDepartment, readBuf);
+        bzero(faculty.fLogin, sizeof(faculty.fLogin));
+        strcpy(faculty.fLogin, faculty.fDepartment);
+        bzero(readBuf, sizeof(readBuf));
+        sprintf(readBuf, "%d", faculty.fId);
+        strcat(faculty.fLogin, readBuf);
+    }
+
+    lseek(facultyFD, -1*sizeof(faculty), SEEK_CUR);
+    writeBytes = write(facultyFD, &faculty, sizeof(faculty));
+    if(writeBytes == -1) {
+        perror("!! Error while writing the faculty details to database !!");
+        close(facultyFD);
+        return;
+    }
+
+    bzero(writeBuf, sizeof(writeBuf));
+    strcpy(writeBuf, "Successfully updated the faculty details\n");
+    writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
+    if(writeBytes == -1) {
+        perror("!! Error while sending the faculty details to client !!");
+    }
+
+    close(facultyFD);
+    return;
 }
 
 void rootAdminController(int clientConnectionFD) {
@@ -356,10 +729,10 @@ void rootAdminController(int clientConnectionFD) {
                 viewStudent(clientConnectionFD);
                 break;
             case 3:
-                // addFaculty();
+                addFaculty(clientConnectionFD);
                 break;
             case 4:
-                // viewFaculty();
+                viewFaculty(clientConnectionFD);
                 break;
             case 5:
                 activateStudent(clientConnectionFD);
@@ -371,7 +744,7 @@ void rootAdminController(int clientConnectionFD) {
                 modifyStudent(clientConnectionFD);
                 break;
             case 8:
-                // modifyFaculty();
+                modifyFaculty(clientConnectionFD);
                 break;
             case 9: // Logout
             default:

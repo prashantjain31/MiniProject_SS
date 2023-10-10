@@ -5,6 +5,8 @@
 
 #define TRACK_FILE "track_file.txt"
 #define STUDENT_DATABASE "student_file.txt"
+#define FACULTY_DATABASE "faculty_file.txt"
+#define COURSE_DATABASE "course_file.txt"
 
 #define ADMIN "ADMIN"
 #define STUDENT "STUDENT"
