@@ -21,24 +21,24 @@ int main() {
         _exit(0);
     }
 
-    struct Track student, admin, faculty;
+    struct Track student, course, faculty;
 
     bzero(student.name, sizeof(student.name));
-    bzero(admin.name, sizeof(admin.name));
+    bzero(course.name, sizeof(course.name));
     bzero(faculty.name, sizeof(faculty.name));
 
     strcpy(student.name, STUDENT);
     student.uid = 1;
 
-    strcpy(admin.name, ADMIN);
-    admin.uid = 1;
+    strcpy(course.name, COURSE);
+    course.uid = 1;
 
     strcpy(faculty.name, FACULTY);
     faculty.uid = 1;
 
     write(trackFD, &student, sizeof(student));
     write(trackFD, &faculty, sizeof(faculty));
-    write(trackFD, &admin, sizeof(admin));
+    write(trackFD, &course, sizeof(course));
 
     lseek(trackFD, 0, SEEK_SET);
     

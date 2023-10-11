@@ -1,7 +1,7 @@
 #ifndef CONSTANT_STRINGS
 #define CONSTANT_STRINGS
 
-#define PORT 8082
+#define PORT 8083
 
 #define TRACK_FILE "track_file.txt"
 #define STUDENT_DATABASE "student_file.txt"
@@ -11,6 +11,7 @@
 #define ADMIN "ADMIN"
 #define STUDENT "STUDENT"
 #define FACULTY "FACULTY"
+#define COURSE "COURSE"
 
 #define WELCOME_STUDENT "---------- Welcome back Student ----------\n"
 #define WELCOME_ADMIN "---------- Welcome back Admin ----------\n"
