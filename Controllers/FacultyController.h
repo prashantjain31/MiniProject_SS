@@ -207,7 +207,7 @@ void addCourse(int clientConnectionFD, struct Faculty *reqFaculty) {
     close(newCourseFD);
 }
 
-void viewAllCourses(int clientConnectionFD, struct Faculty *reqFaculty) {
+void viewAllFacultyCourses(int clientConnectionFD, struct Faculty *reqFaculty) {
     char tempBuf[1000], writeBuf[1000];
     ssize_t readBytes, writeBytes;
 
@@ -358,7 +358,7 @@ void rootFacultyController(int clientConnectionFD) {
             facultyChoice = atoi(readBuf);
             switch (facultyChoice) {
                 case 1:
-                    viewAllCourses(clientConnectionFD, &faculty);
+                    viewAllFacultyCourses(clientConnectionFD, &faculty);
                     break;
                 case 2:
                     addCourse(clientConnectionFD, &faculty);
