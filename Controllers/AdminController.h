@@ -80,6 +80,7 @@ void addStudent(int clientConnectionFD) {
     strcat(newStudent.sRollNo, readBuf);
 
     newStudent.active = true;
+    newStudent.online = false;
 
     strcpy(newStudent.sPassword, DEFAULT_PASS);
 
@@ -105,13 +106,21 @@ void addStudent(int clientConnectionFD) {
     writeBytes = write(studentFD, &newStudent, sizeof(newStudent));
     if(writeBytes == -1) {
         perror("!! Error while writing student to databasse !!");
+        bzero(writeBuf, sizeof(writeBuf));
+        strcpy(writeBuf, "&");
+
+        writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
+        if(writeBytes == -1) {
+            perror("!! Error while writing to client !!");
+            return;
+        }
         close(trackFD);
         close(studentFD);
         return;
     }
 
     bzero(writeBuf, sizeof(writeBuf));
-    sprintf(writeBuf, "Student Added Successfully with Roll Number: %s\n", newStudent.sRollNo);
+    sprintf(writeBuf, "# Student Added Successfully with Roll Number: %s\n", newStudent.sRollNo);
     writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
     if(writeBytes == -1) {
         perror("!! Error while reporting the response !!");
@@ -162,15 +171,25 @@ void viewStudent(int clientConnectionFD) {
 
     bzero(writeBuf, sizeof(writeBuf));
     if(readBytes == 0) {    
-        sprintf(writeBuf, "Couldn't find Student with Roll Number: %s\n", rollnumber);
+        sprintf(writeBuf, "# Couldn't find Student with Roll Number: %s\n", rollnumber);
     } else {
-        sprintf(writeBuf, "----- Student Details -----\nName: %s\nAddress: %s\nAge: %d\nRoll Number: %s\nActive Status(1 = Active and 0 = Blocked): %d", 
-            student.sName, student.sAddress, student.sAge, student.sRollNo, student.active);
+        sprintf(writeBuf, "# Student Details \nName: %s\nAddress: %s\nAge: %d\nRoll Number: %s\nActive Status(1 = Active and 0 = Blocked): %d\nOnline Status(1 = Online and 0 = Offline): %d\n", 
+            student.sName, student.sAddress, student.sAge, student.sRollNo, student.active, student.online);
     }
 
     writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
     if(writeBytes == -1) {
         perror("!! Error while sending the student details to client !!");
+        
+        bzero(writeBuf, sizeof(writeBuf));
+        strcpy(writeBuf, "&");
+
+        writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
+        if(writeBytes == -1) {
+            perror("!! Error while writing to client !!");
+            return;
+        }
+
         close(studentFD);
         return;
     }
@@ -219,7 +238,7 @@ void activateStudent(int clientConnectionFD) {
 
     bzero(writeBuf, sizeof(writeBuf));
     if(readBytes == 0) {    
-        sprintf(writeBuf, "Couldn't find Student with Roll Number: %s\n", rollnumber);
+        sprintf(writeBuf, "# Couldn't find Student with Roll Number: %s\n", rollnumber);
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
             perror("!! Error while sending the student details to client !!");
@@ -240,7 +259,7 @@ void activateStudent(int clientConnectionFD) {
     }
 
     bzero(writeBuf, sizeof(writeBuf));
-    strcpy(writeBuf, "Successfully activated the student access\n");
+    strcpy(writeBuf, "# Successfully activated the student access\n");
     writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
     if(writeBytes == -1) {
         perror("!! Error while sending the student details to client !!");
@@ -290,7 +309,7 @@ void blockStudent(int clientConnectionFD) {
 
     bzero(writeBuf, sizeof(writeBuf));
     if(readBytes == 0) {    
-        sprintf(writeBuf, "Couldn't find Student with Roll Number: %s\n", rollnumber);
+        sprintf(writeBuf, "# Couldn't find Student with Roll Number: %s\n", rollnumber);
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
             perror("!! Error while sending the student details to client !!");
@@ -311,7 +330,7 @@ void blockStudent(int clientConnectionFD) {
     }
 
     bzero(writeBuf, sizeof(writeBuf));
-    strcpy(writeBuf, "Successfully blocked the student access\n");
+    strcpy(writeBuf, "# Successfully blocked the student access\n");
     writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
     if(writeBytes == -1) {
         perror("!! Error while sending the student details to client !!");
@@ -361,10 +380,24 @@ void modifyStudent(int clientConnectionFD) {
 
     bzero(writeBuf, sizeof(writeBuf));
     if(readBytes == 0) {    
-        sprintf(writeBuf, "Couldn't find Student with Roll Number: %s\n", rollnumber);
+        sprintf(writeBuf, "# Couldn't find Student with Roll Number: %s\n", rollnumber);
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
             perror("!! Error while sending the student details to client !!");
+            close(studentFD);
+            return;
+        }
+        close(studentFD);
+        return;
+    }
+
+    if(student.online == 1) {
+        bzero(writeBuf, sizeof(writeBuf));
+        strcpy(writeBuf, "# ");
+        strcat(writeBuf, CANNOT_CHANGE);
+        write(clientConnectionFD, writeBuf, sizeof(writeBuf));
+        if(writeBytes == -1) {
+            perror("!! Error writing the message to client !!");
             close(studentFD);
             return;
         }
@@ -425,7 +458,7 @@ void modifyStudent(int clientConnectionFD) {
     }
 
     bzero(writeBuf, sizeof(writeBuf));
-    strcpy(writeBuf, "Successfully updated the student details\n");
+    strcpy(writeBuf, "# Successfully updated the student details\n");
     writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
     if(writeBytes == -1) {
         perror("!! Error while sending the student details to client !!");
@@ -493,6 +526,7 @@ void addFaculty(int clientConnectionFD) {
     strcat(newFaculty.fLogin, readBuf);
 
     newFaculty.active = true;
+    newFaculty.online = false;
 
     strcpy(newFaculty.fPassword, DEFAULT_PASS);
 
@@ -524,7 +558,7 @@ void addFaculty(int clientConnectionFD) {
     }
 
     bzero(writeBuf, sizeof(writeBuf));
-    sprintf(writeBuf, "Faculty Added Successfully with login id: %s\n", newFaculty.fLogin);
+    sprintf(writeBuf, "# Faculty Added Successfully with login id: %s\n", newFaculty.fLogin);
     writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
     if(writeBytes == -1) {
         perror("!! Error while reporting the response !!");
@@ -575,10 +609,10 @@ void viewFaculty(int clientConnectionFD) {
 
     bzero(writeBuf, sizeof(writeBuf));
     if(readBytes == 0) {    
-        sprintf(writeBuf, "Couldn't find faculty with login: %s\n", login);
+        sprintf(writeBuf, "# Couldn't find faculty with login: %s\n", login);
     } else {
-        sprintf(writeBuf, "----- Faculty Details -----\nName: %s\nAddress: %s\nLogin: %s\nDepartment: %s\nActive Status(1 = Active and 0 = Blocked): %d", 
-            faculty.fName, faculty.fAddress, faculty.fLogin, faculty.fDepartment, faculty.active);
+        sprintf(writeBuf, "# Faculty Details \nName: %s\nAddress: %s\nLogin: %s\nDepartment: %s\nActive Status(1 = Active and 0 = Blocked): %d\nOnline status(1 = Online and 0 = Offline): %d\n", 
+            faculty.fName, faculty.fAddress, faculty.fLogin, faculty.fDepartment, faculty.active, faculty.online);
     }
 
     writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
@@ -632,10 +666,24 @@ void modifyFaculty(int clientConnectionFD) {
 
     bzero(writeBuf, sizeof(writeBuf));
     if(readBytes == 0) {    
-        sprintf(writeBuf, "Couldn't find Faculty with login id: %s\n", login);
+        sprintf(writeBuf, "# Couldn't find Faculty with login id: %s\n", login);
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
             perror("!! Error while sending the faculty details to client !!");
+        }
+        close(facultyFD);
+        return;
+    }
+
+    if(faculty.online == 1) {
+        bzero(writeBuf, sizeof(writeBuf));
+        strcpy(writeBuf, "# ");
+        strcat(writeBuf, CANNOT_CHANGE);
+        write(clientConnectionFD, writeBuf, sizeof(writeBuf));
+        if(writeBytes == -1) {
+            perror("!! Error writing the message to client !!");
+            close(facultyFD);
+            return;
         }
         close(facultyFD);
         return;
@@ -686,7 +734,7 @@ void modifyFaculty(int clientConnectionFD) {
     }
 
     bzero(writeBuf, sizeof(writeBuf));
-    strcpy(writeBuf, "Successfully updated the faculty details\n");
+    strcpy(writeBuf, "# Successfully updated the faculty details\n");
     writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
     if(writeBytes == -1) {
         perror("!! Error while sending the faculty details to client !!");
@@ -703,55 +751,60 @@ void rootAdminController(int clientConnectionFD) {
     bzero(readBuf, sizeof(readBuf));
     bzero(writeBuf, sizeof(writeBuf));
 
-    if(loginHandler(clientConnectionFD, 3)) {
+    char aid[20];
+    if(loginHandler(clientConnectionFD, 3, NULL, NULL)) {
         strcpy(writeBuf, SUCCESS_LOGIN);
-        strcat(writeBuf, ADMINPAGE);
-        writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
-        if(writeBytes == -1) {
-            perror("!! Error while sending the Admin choice Page !!");
-            return;
-        }
-
-        readBytes = read(clientConnectionFD, readBuf, sizeof(readBuf));
-        if(readBytes == -1) {
-            perror("!! Error while reading the Admin's choice !!");
-            return;
-        } else if(readBytes == 0) {
-            perror("No data received from the Admin side");
-            return;
-        }
-        int adminChoice = atoi(readBuf);
-        switch (adminChoice) {
-            case 1:
-                addStudent(clientConnectionFD);
-                break;
-            case 2:
-                viewStudent(clientConnectionFD);
-                break;
-            case 3:
-                addFaculty(clientConnectionFD);
-                break;
-            case 4:
-                viewFaculty(clientConnectionFD);
-                break;
-            case 5:
-                activateStudent(clientConnectionFD);
-                break;
-            case 6:
-                blockStudent(clientConnectionFD);
-                break;
-            case 7:
-                modifyStudent(clientConnectionFD);
-                break;
-            case 8:
-                modifyFaculty(clientConnectionFD);
-                break;
-            case 9: // Logout
-            default:
-                // Wrong Choice
-                write(clientConnectionFD, SUCCESS_LOGOUT, sizeof(SUCCESS_LOGOUT));
+        int adminChoice;
+        do {
+            strcat(writeBuf, ADMINPAGE);
+            writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
+            if(writeBytes == -1) {
+                perror("!! Error while sending the Admin choice Page !!");
                 return;
-        }
+            }
+
+            readBytes = read(clientConnectionFD, readBuf, sizeof(readBuf));
+            if(readBytes == -1) {
+                perror("!! Error while reading the Admin's choice !!");
+                return;
+            } else if(readBytes == 0) {
+                perror("No data received from the Admin side");
+                return;
+            }
+            adminChoice = atoi(readBuf);
+            switch (adminChoice) {
+                case 1:
+                    addStudent(clientConnectionFD);
+                    break;
+                case 2:
+                    viewStudent(clientConnectionFD);
+                    break;
+                case 3:
+                    addFaculty(clientConnectionFD);
+                    break;
+                case 4:
+                    viewFaculty(clientConnectionFD);
+                    break;
+                case 5:
+                    activateStudent(clientConnectionFD);
+                    break;
+                case 6:
+                    blockStudent(clientConnectionFD);
+                    break;
+                case 7:
+                    modifyStudent(clientConnectionFD);
+                    break;
+                case 8:
+                    modifyFaculty(clientConnectionFD);
+                    break;
+                case 9: // Logout
+                default:
+                    // Wrong Choice
+                    write(clientConnectionFD, SUCCESS_LOGOUT, sizeof(SUCCESS_LOGOUT));
+                    return;
+            }
+            bzero(writeBuf, sizeof(writeBuf));
+        } while(adminChoice > 0 && adminChoice < 9);
 
     } else {
         strcpy(writeBuf, FAILED_LOGIN);

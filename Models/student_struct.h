@@ -9,6 +9,7 @@ struct Student {
     char sPassword[50];
     int sAge;
     bool active;
+    bool online;
 };
 
 #endif

@@ -9,6 +9,7 @@ struct Faculty {
     char fAddress[100];
     char fPassword[50];
     bool active;
+    bool online;
 };
 
 #endif

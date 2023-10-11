@@ -1,7 +1,7 @@
 #ifndef CONSTANT_STRINGS
 #define CONSTANT_STRINGS
 
-#define PORT 8080
+#define PORT 8082
 
 #define TRACK_FILE "track_file.txt"
 #define STUDENT_DATABASE "student_file.txt"
@@ -27,8 +27,11 @@
 #define SUCCESS_LOGIN "--- Login Successful ---\n"
 #define SUCCESS_LOGOUT "--- Logout Successful ---\n"
 #define FAILED_LOGOUT "--- Logout Successful ---\n"
+#define BLOCKED "--- This account is blocked please talk to administrator ---\n"
+#define ALREADY_LOGGED_IN "--- This account is already logged in ---\n"
+#define CANNOT_CHANGE "--- This account is online cannot modify it currently ---\n"
 
-#define WRONG "Something went wrong at server side. \nLogging you out.\n"
+#define WRONG "Something went wrong at server side. \n"
 
 #define DEFAULT_PASS "1234" 
 

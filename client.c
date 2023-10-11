@@ -26,9 +26,14 @@ void connectionHandler(int socketFD) {
         else {
             if(strchr(readBuf, '*') != NULL) {
                 strcpy(writeBuf, getpass(LOGIN_PASS_MESSAGE));
-            } else if (strchr(readBuf, '&') != NULL) {
+            } else if(strchr(readBuf, '$') != NULL) {
+                strcpy(writeBuf, getpass(readBuf));
+            } else if(strchr(readBuf, '&') != NULL) {
                 printf("%s", WRONG);
-                break;
+                continue;
+            } else if(strchr(readBuf, '#') != NULL) {
+                printf("%s", readBuf);
+                continue;
             } else {
                 printf("%s", readBuf);
                 scanf("%[^\n]%*c", writeBuf);
