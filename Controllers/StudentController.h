@@ -480,6 +480,68 @@ void viewEnrolledCourseDetail(int clientConnectionFD, struct Student *reqStudent
     close(courseDbFD);
 }
 
+void viewAllEnrolledCourses(int clientConnectionFD, struct Student *reqStudent) {
+    char tempBuf[1000], writeBuf[1000], readBuf[1000];
+    ssize_t readBytes, writeBytes;
+
+    bzero(tempBuf, sizeof(tempBuf));
+    bzero(writeBuf, sizeof(writeBuf));
+
+    struct Course course;
+    char databaseFile[50];
+    strcpy(databaseFile, "./database/");
+    strcat(databaseFile, COURSE_DATABASE);
+
+    int courseFD = open(databaseFile, O_CREAT | O_RDWR, 0777);
+    if(courseFD == -1) {
+        perror("!! Error while opening course database file !!");
+
+        bzero(writeBuf, sizeof(writeBuf));
+        strcpy(writeBuf, "&");
+
+        writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
+        if(writeBytes == -1) {
+            perror("!! Error while writing logout message to client !!");
+            return;
+        }
+        return;
+    }
+
+    bzero(writeBuf, sizeof(writeBuf));
+    strcpy(writeBuf, "# List of Courses in which you are enrolled \n\n");
+    while((readBytes = read(courseFD, &course, sizeof(course))) != 0) {
+        if(course.active == 0) continue;
+
+        char courseDatabaseFile[50];
+        strcpy(courseDatabaseFile, "./database/");
+        strcat(courseDatabaseFile, course.databasePath);
+        int courseDbFD = open(courseDatabaseFile, O_CREAT | O_RDWR, 0777);
+        if(courseDbFD == -1) {
+            perror("!! Error while opening course's database file !!");
+            continue;
+        }
+
+        struct Enroll enroll;
+        while((readBytes = read(courseDbFD, &enroll, sizeof(enroll))) != 0) {
+            if(enroll.sid == reqStudent->sId && enroll.active == 1) break;
+        }
+        if(readBytes > 0) {
+            bzero(tempBuf, sizeof(tempBuf));
+            sprintf(tempBuf, "Course Id: %d\n\n", course.cId);
+            strcat(writeBuf, tempBuf);
+        }
+        close(courseDbFD);
+    }
+
+    writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
+    if(writeBytes == -1) {
+        perror("!! Error while sending the response to client !!");
+    }
+
+    close(courseFD);
+    return;
+}
+
 void rootStudentController(int clientConnectionFD) {
     
     char readBuf[1000], writeBuf[1000];
@@ -525,7 +587,10 @@ void rootStudentController(int clientConnectionFD) {
                 case 5:
                     changeStudentPassword(clientConnectionFD, &student);
                     break;
-                case 6: // Logout
+                case 6:
+                    viewAllEnrolledCourses(clientConnectionFD, &student);
+                    break;
+                case 7: // Logout
                 default:
                     // Wrong Choice
                     logoutHandler(1, &student, NULL);
@@ -533,7 +598,7 @@ void rootStudentController(int clientConnectionFD) {
                     return;
             }
             bzero(writeBuf, sizeof(writeBuf));
-        } while(studentChoice > 0 && studentChoice < 6);
+        } while(studentChoice > 0 && studentChoice < 7);
 
     } else {
         strcpy(writeBuf, FAILED_LOGIN);

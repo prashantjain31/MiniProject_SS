@@ -1,7 +1,7 @@
 #ifndef CONSTANT_STRINGS
 #define CONSTANT_STRINGS
 
-#define PORT 8085
+#define PORT 8086
 
 #define TRACK_FILE "track_file.txt"
 #define STUDENT_DATABASE "student_file.txt"
@@ -20,7 +20,7 @@
 #define HOMEPAGE "---------- Welcome back to the Academia Portal ----------\n1.Student \n2.Professor \n3.Administrator \nEnter Login Type (1, 2, or 3): "
 #define ADMINPAGE "---------- Welcome to Admin Page ----------\n1.Add Student \n2.View Student Details \n3.Add Faculty \n4.View Faculty Details \n5.Activate Student \n6.Block Student \n7.Modify Student Details \n8.Modify Faculty Details \n9.Logout and Exit \nEnter your choice: "
 #define FACULTYPAGE "---------- Welcome to Faculty Page ----------\n1.View Offering Courses \n2.Add new Course \n3.Remove Course from Catalog \n4.UpdateCourse Details \n5.Change Password \n6.Logout and Exit \nEnter your choice: "
-#define STUDENTYPAGE "---------- Welcome to Student Page ----------\n1.View all Courses \n2.Enroll into new Course \n3.Drop Course \n4.View Enrolled Course Details \n5.Change Password \n6.Logout and Exit \nEnter your choice: "
+#define STUDENTYPAGE "---------- Welcome to Student Page ----------\n1.View all Courses \n2.Enroll into new Course \n3.Drop Course \n4.View Enrolled Course Details \n5.Change Password \n6.View All enrolled courses \n7.Logout and Exit \nEnter your choice: "
 
 #define LOGIN_ID_MESSAGE "Enter your Login id: "
 #define LOGIN_PASS_MESSAGE "Enter your Password: "

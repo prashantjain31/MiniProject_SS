@@ -12,6 +12,7 @@
 #include <errno.h>
 
 #include "../Models/student_struct.h"
+#include "../Models/enroll_struct.h"
 #include "../Models/track_struct.h"
 #include "../Helpers/constantStrings.h"
 #include "../Helpers/loginHelper.h"
@@ -328,6 +329,55 @@ void blockStudent(int clientConnectionFD) {
         close(studentFD);
         return;
     }
+
+    char courseFile[50];
+    strcpy(courseFile, "./database/");
+    strcat(courseFile, COURSE_DATABASE);
+    int courseFD = open(courseFile, O_CREAT | O_RDWR, 0777);
+    if(courseFD == -1) {
+        perror("!! Error while opening course database file !!");
+
+        bzero(writeBuf, sizeof(writeBuf));
+        strcpy(writeBuf, "&");
+
+        writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
+        if(writeBytes == -1) {
+            perror("!! Error while writing logout message to client !!");
+            return;
+        }
+        return;
+    }
+    struct Course course;
+    while((readBytes = read(courseFD, &course, sizeof(course))) != 0) {
+        if(course.active == 0) continue;
+
+        char courseDatabaseFile[50];
+        strcpy(courseDatabaseFile, "./database/");
+        strcat(courseDatabaseFile, course.databasePath);
+        int courseDbFD = open(courseDatabaseFile, O_CREAT | O_RDWR, 0777);
+        if(courseDbFD == -1) {
+            perror("!! Error while opening course's database file !!");
+            continue;
+        }
+
+        struct Enroll enroll;
+        while((readBytes = read(courseDbFD, &enroll, sizeof(enroll))) != 0) {
+            if(enroll.sid == student.sId && enroll.active == 1) break;
+        }
+        if(readBytes > 0) {
+            enroll.sid = -1;
+            enroll.active = false;
+            lseek(courseDbFD, -1*sizeof(enroll), SEEK_CUR);
+            write(courseDbFD, &enroll, sizeof(enroll));
+
+            course.cCurrentAvailableSeats++;
+            lseek(courseFD, -1*sizeof(course), SEEK_CUR);
+            write(courseFD, &course, sizeof(course));
+        }
+        close(courseDbFD);
+    }
+
+    close(courseFD);
 
     bzero(writeBuf, sizeof(writeBuf));
     strcpy(writeBuf, "# Successfully blocked the student access\n");
