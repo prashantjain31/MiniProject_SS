@@ -331,7 +331,7 @@ void dropCourse(int clientConnectionFD, struct Student *reqStudent) {
 
     bzero(writeBuf, sizeof(writeBuf));
     if(readBytes > 0) {    
-
+        enrolled.sid = -1;
         enrolled.active = 0;
         lseek(courseDbFD, -1*sizeof(enrolled), SEEK_CUR);
         writeBytes = write(courseDbFD, &enrolled, sizeof(enrolled));

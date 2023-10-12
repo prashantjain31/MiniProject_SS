@@ -327,6 +327,185 @@ void removeCourse(int clientConnectionFD, struct Faculty *reqFaculty) {
     return;
 }
 
+void updateCourseDetail(int clientConnectionFD, struct Faculty *reqFaculty) {
+    char tempBuf[1000], writeBuf[1000], readBuf[1000];
+    ssize_t readBytes, writeBytes;
+
+    bzero(tempBuf, sizeof(tempBuf));
+    bzero(writeBuf, sizeof(writeBuf));
+
+    int cid;
+    strcpy(writeBuf, "Enter the course id: ");
+    if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
+    cid = atoi(readBuf);
+
+    struct Course course;
+    char databaseFile[50];
+    strcpy(databaseFile, "./database/");
+    strcat(databaseFile, COURSE_DATABASE);
+
+    int courseFD = open(databaseFile, O_CREAT | O_RDWR, 0777);
+    if(courseFD == -1) {
+        perror("!! Error while opening course database file !!");
+
+        bzero(writeBuf, sizeof(writeBuf));
+        strcpy(writeBuf, "&");
+
+        writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
+        if(writeBytes == -1) {
+            perror("!! Error while writing logout message to client !!");
+            return;
+        }
+        return;
+    }
+
+    while((readBytes = read(courseFD, &course, sizeof(course))) != 0) {
+        if(course.cId == atoi(readBuf) && course.active == 1 && course.fId == reqFaculty->fId) break;
+    }
+
+    bzero(writeBuf, sizeof(writeBuf));
+    if(readBytes == 0) {    
+        sprintf(writeBuf, "# Couldn't find Course with ID: %d\n", cid);
+        writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
+        if(writeBytes == -1) {
+            perror("!! Error while sending the response to client !!");
+            close(courseFD);
+            return;
+        }
+        close(courseFD);
+        return;
+    }
+
+    bzero(writeBuf, sizeof(writeBuf));
+    strcpy(writeBuf, "Want to modify the Name of course? (Enter y or n): ");
+    if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
+    if(strcmp(readBuf, "y") == 0) {
+        bzero(writeBuf, sizeof(writeBuf));
+        strcpy(writeBuf, "Enter the new name: ");
+        if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
+        strcpy(course.cName, readBuf);
+    }
+
+    bzero(writeBuf, sizeof(writeBuf));
+    strcpy(writeBuf, "Want to modify the department of course? (Enter y or n): ");
+    if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
+    if(strcmp(readBuf, "y") == 0) {
+        bzero(writeBuf, sizeof(writeBuf));
+        strcpy(writeBuf, "Enter the new department: ");
+        if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
+        strcpy(course.cDepartment, readBuf);
+    }
+
+    bzero(writeBuf, sizeof(writeBuf));
+    strcpy(writeBuf, "Want to modify the course credits? (Enter y or n): ");
+    if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
+    if(strcmp(readBuf, "y") == 0) {
+        bzero(writeBuf, sizeof(writeBuf));
+        strcpy(writeBuf, "Enter the new credits: ");
+        if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
+        course.cCredits = atoi(readBuf);
+    }
+
+    bzero(writeBuf, sizeof(writeBuf));
+    strcpy(writeBuf, "Want to modify the total number of seats? (Enter y or n): ");
+    if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
+    if(strcmp(readBuf, "y") == 0) {
+        bzero(writeBuf, sizeof(writeBuf));
+        strcpy(writeBuf, "Enter the new total number of seats: ");
+        if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
+        int newTotalSeats = atoi(readBuf);
+        if(newTotalSeats <= 0) {
+            bzero(writeBuf, sizeof(writeBuf));
+            strcpy(writeBuf, "# Total number of seats cannot be xero and in negative\n");
+            writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
+            if(writeBytes == -1) {
+                perror("!! Error while sending the response to client !!");
+            }
+            close(courseFD);
+            return;
+        }
+
+        if(newTotalSeats >= course.cTotalSeats) {
+            int newlyAdded = newTotalSeats - course.cTotalSeats;
+            course.cTotalSeats = newTotalSeats;
+            course.cCurrentAvailableSeats += newlyAdded;
+        } else {
+            int newlyRemoved = course.cTotalSeats - newTotalSeats ;
+            course.cTotalSeats = newTotalSeats;
+            if(course.cCurrentAvailableSeats >= newlyRemoved) {
+                course.cCurrentAvailableSeats -= newlyRemoved;
+            } else {
+                char courseDatabaseFile[50];
+                newlyRemoved -= course.cCurrentAvailableSeats;
+                course.cCurrentAvailableSeats = 0;
+
+                strcpy(courseDatabaseFile, "./database/");
+                strcat(courseDatabaseFile, course.databasePath);
+                int courseDbFD = open(courseDatabaseFile, O_CREAT | O_RDWR, 0777);
+                if(courseDbFD == -1) {
+                    perror("!! Error while opening course's database file !!");
+
+                    bzero(writeBuf, sizeof(writeBuf));
+                    strcpy(writeBuf, "&");
+
+                    writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
+                    if(writeBytes == -1) {
+                        perror("!! Error while writing logout message to client !!");
+                    }
+                    close(courseFD);
+                    return;
+                }
+                struct Enroll enroll;
+                lseek(courseDbFD, -1*sizeof(enroll), SEEK_END);
+
+                bzero(writeBuf, sizeof(writeBuf));
+                strcpy(writeBuf, "# List of removed student to adjust seats. \n\n");
+                while(newlyRemoved > 0) {
+                    read(courseDbFD, &enroll, sizeof(enroll));
+                    if(enroll.sid > 0 && enroll.active == 1) {
+                        bzero(tempBuf, sizeof(tempBuf));
+                        sprintf(tempBuf, "Student id: %d\n", enroll.sid);
+
+                        enroll.sid = -1;
+                        enroll.active = false;
+                        newlyRemoved--;
+                        lseek(courseDbFD, -1*sizeof(enroll), SEEK_CUR);
+                        write(courseDbFD, &enroll, sizeof(enroll));
+
+                        strcat(writeBuf, tempBuf);
+                    }
+                    lseek(courseDbFD, -2*sizeof(enroll), SEEK_CUR);
+                }
+
+                writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
+                if(writeBytes == -1) {
+                    perror("!! Error while writing response to client !!");
+                }
+
+                close(courseDbFD);
+            }
+        }
+    }
+
+    lseek(courseFD, -1*sizeof(course), SEEK_CUR);
+    writeBytes = write(courseFD, &course, sizeof(course));
+    if(writeBytes == -1) {
+        perror("!! Error while writing the course details to database !!");
+        close(courseFD);
+        return;
+    }
+
+    bzero(writeBuf, sizeof(writeBuf));
+    strcpy(writeBuf, "# Successfully modified the course\n");
+    writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
+    if(writeBytes == -1) {
+        perror("!! Error while sending the response to client !!");
+    }
+
+    close(courseFD);
+    return;
+}
+
 void rootFacultyController(int clientConnectionFD) {
 
     char readBuf[1000], writeBuf[1000];
@@ -367,7 +546,7 @@ void rootFacultyController(int clientConnectionFD) {
                     removeCourse(clientConnectionFD, &faculty);
                     break;
                 case 4:
-                    // updateCourseDetail(clientConnectionFD);
+                    updateCourseDetail(clientConnectionFD, &faculty);
                     break;
                 case 5:
                     changeFacultyPassword(clientConnectionFD, &faculty);
