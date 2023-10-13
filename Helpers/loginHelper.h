@@ -63,12 +63,12 @@ bool loginHandler(int clientConnectionFD, int loginType, struct Student *reqStud
 
     if(loginType == 1) {
         char databaseFile[50];
-        strcpy(databaseFile, "./database/");
+        strcpy(databaseFile, DATABASE_PATH);
         strcat(databaseFile, STUDENT_DATABASE);
 
         int studentFD = open(databaseFile, O_CREAT | O_RDWR, 0777);
         if(studentFD == -1) {
-            perror("!! Error while opening student database file !!");
+            perror(ERROR_OPEN_STUDENT);
             return false;
         }
 
@@ -77,22 +77,20 @@ bool loginHandler(int clientConnectionFD, int loginType, struct Student *reqStud
             if(strcmp(student.sRollNo, tempBuf) == 0) {
                 if(student.active == 0) {
                     bzero(writeBuf, sizeof(writeBuf));
-                    strcpy(writeBuf, "# ");
-                    strcat(writeBuf, BLOCKED);
+                    strcpy(writeBuf, BLOCKED);
                     write(clientConnectionFD, writeBuf, sizeof(writeBuf));
                     if(writeBytes == -1) {
-                        perror("!! Error writing the message to client !!");
+                        perror(ERROR_WRITING_TO_CLIENT);
                         return false;
                     }
                     return false;
                 }
                 if(student.online == 1) {
                     bzero(writeBuf, sizeof(writeBuf));
-                    strcpy(writeBuf, "# ");
-                    strcat(writeBuf, ALREADY_LOGGED_IN);
+                    strcpy(writeBuf, ALREADY_LOGGED_IN);
                     write(clientConnectionFD, writeBuf, sizeof(writeBuf));
                     if(writeBytes == -1) {
-                        perror("!! Error writing the message to client !!");
+                        perror(ERROR_WRITING_TO_CLIENT);
                         return false;
                     }
                     return false;
@@ -101,7 +99,7 @@ bool loginHandler(int clientConnectionFD, int loginType, struct Student *reqStud
                     student.online = 1;
                     if(strcmp(student.sPassword, DEFAULT_PASS) == 0) {
                         bzero(writeBuf, sizeof(writeBuf));
-                        strcpy(writeBuf, "$ Enter the new password (because your current password is default password): ");
+                        strcpy(writeBuf, REQ_DEFAULT_TO_NEW_PASS);
                         if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return false;
                         strcpy(student.sPassword, readBuf);
                     }
@@ -109,7 +107,7 @@ bool loginHandler(int clientConnectionFD, int loginType, struct Student *reqStud
                     lseek(studentFD, -1*sizeof(student), SEEK_CUR);
                     writeBytes = write(studentFD, &student, sizeof(student));
                     if(writeBytes == -1) {
-                        perror("!! Error while writing the student details to database !!");
+                        perror(ERROR_WRITING_STUDENT_DB);
                         close(studentFD);
                         return false;
                     }
@@ -134,12 +132,12 @@ bool loginHandler(int clientConnectionFD, int loginType, struct Student *reqStud
         return false;
     } else if(loginType == 2) {
         char databaseFile[50];
-        strcpy(databaseFile, "./database/");
+        strcpy(databaseFile, DATABASE_PATH);
         strcat(databaseFile, FACULTY_DATABASE);
 
         int facultyFD = open(databaseFile, O_CREAT | O_RDWR, 0777);
         if(facultyFD == -1) {
-            perror("!! Error while opening faculty database file !!");
+            perror(ERROR_OPEN_FACULTY);
             return false;
         }
 
@@ -148,22 +146,20 @@ bool loginHandler(int clientConnectionFD, int loginType, struct Student *reqStud
             if(strcmp(faculty.fLogin, tempBuf) == 0) {
                 if(faculty.active == 0) {
                     bzero(writeBuf, sizeof(writeBuf));
-                    strcpy(writeBuf, "# ");
-                    strcat(writeBuf, BLOCKED);
+                    strcpy(writeBuf, BLOCKED);
                     write(clientConnectionFD, writeBuf, sizeof(writeBuf));
                     if(writeBytes == -1) {
-                        perror("!! Error writing the message to client !!");
+                        perror(ERROR_WRITING_TO_CLIENT);
                         return false;
                     }
                     return false;
                 }
                 if(faculty.online == 1) {
                     bzero(writeBuf, sizeof(writeBuf));
-                    strcpy(writeBuf, "# ");
-                    strcat(writeBuf, ALREADY_LOGGED_IN);
+                    strcpy(writeBuf, ALREADY_LOGGED_IN);
                     write(clientConnectionFD, writeBuf, sizeof(writeBuf));
                     if(writeBytes == -1) {
-                        perror("!! Error writing the message to client !!");
+                        perror(ERROR_WRITING_TO_CLIENT);
                         return false;
                     }
                     return false;
@@ -172,7 +168,7 @@ bool loginHandler(int clientConnectionFD, int loginType, struct Student *reqStud
                     faculty.online = 1;
                     if(strcmp(faculty.fPassword, DEFAULT_PASS) == 0) {
                         bzero(writeBuf, sizeof(writeBuf));
-                        strcpy(writeBuf, "$ Enter the new password (because your current password is default password): ");
+                        strcpy(writeBuf, REQ_DEFAULT_TO_NEW_PASS);
                         if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return false;
                         strcpy(faculty.fPassword, readBuf);
                     }
@@ -180,7 +176,7 @@ bool loginHandler(int clientConnectionFD, int loginType, struct Student *reqStud
                     lseek(facultyFD, -1*sizeof(faculty), SEEK_CUR);
                     writeBytes = write(facultyFD, &faculty, sizeof(faculty));
                     if(writeBytes == -1) {
-                        perror("!! Error while writing the faculty details to database !!");
+                        perror(ERROR_WRITING_FACULTY_DB);
                         close(facultyFD);
                         return false;
                     }

@@ -32,9 +32,9 @@ void connectionHandler(int clientConnectionFD) {
         bzero(readBuf, sizeof(readBuf));
         readBytes = read(clientConnectionFD, readBuf, sizeof(readBuf));
         if(readBytes == -1)
-            perror("!! Error while reading from client !!");
+            perror(ERROR_READING_FROM_CLIENT);
         else if(readBytes == 0)
-            printf("No data was sent by the client\n");
+            printf(NO_DATA_RECEIVED);
         else {
             userChoice = atoi(readBuf);
             switch(userChoice) {

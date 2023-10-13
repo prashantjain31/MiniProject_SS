@@ -17,16 +17,16 @@ bool readwrite(int clientConnectionFD, char *writeBuf, int writeSize, char *read
     bzero(readBuf, readSize);
     writeBytes = write(clientConnectionFD, writeBuf, writeSize);
     if(writeBytes == -1) {
-        perror("!! Error while sending the request to client !!");
+        perror(ERROR_WRITING_TO_CLIENT);
         return false;
     }
 
     readBytes = read(clientConnectionFD, readBuf, readSize);
     if(readBytes == -1) {
-        perror("!! Error while reading the response of client !!");
+        perror(ERROR_READING_FROM_CLIENT);
         return false;
     } else if(readBytes == 0) {
-        perror("No data received from the client side");
+        perror(NO_DATA_RECEIVED);
         return false;
     } 
 

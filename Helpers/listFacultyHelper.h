@@ -19,26 +19,26 @@ void listFaculty(int clientConnectionFD, char *writeBuf, int writeSize) {
     char tempBuf[1000];
 
     char databaseFile[50];
-    strcpy(databaseFile, "./database/");
+    strcpy(databaseFile, DATABASE_PATH);
     strcat(databaseFile, FACULTY_DATABASE);
 
     int facultyFD = open(databaseFile, O_CREAT | O_RDONLY, 0777);
     if(facultyFD == -1) {
-        perror("!! Error while opening faculty database file !!");
+        perror(ERROR_OPEN_FACULTY);
 
         bzero(writeBuf, sizeof(writeBuf));
         strcpy(writeBuf, "&");
 
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error while writing logout message to client !!");
+            perror(ERROR_REPORTING_LOGOUT_MESSAGE);
             return;
         }
         return;
     }
 
     struct Faculty faculty;
-    strcpy(writeBuf, "----- Faculty List -----\n");
+    strcpy(writeBuf, FACULTY_LIST_HEADING);
     strcat(writeBuf, "Login ID -> Name\n");
     while((readBytes = read(facultyFD, &faculty, sizeof(faculty))) != 0) {
         bzero(tempBuf, sizeof(tempBuf));

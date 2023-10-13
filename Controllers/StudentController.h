@@ -23,12 +23,12 @@ bool changeStudentPassword(int clientConnectionFD, struct Student *reqStudent) {
     ssize_t readBytes, writeBytes;
 
     char databaseFile[50];
-    strcpy(databaseFile, "./database/");
+    strcpy(databaseFile, DATABASE_PATH);
     strcat(databaseFile, STUDENT_DATABASE);
 
     int studentFD = open(databaseFile, O_CREAT | O_RDWR, 0777);
     if(studentFD == -1) {
-        perror("!! Error while opening student database file !!");
+        perror(ERROR_OPEN_STUDENT);
         return false;
     }
 
@@ -37,14 +37,14 @@ bool changeStudentPassword(int clientConnectionFD, struct Student *reqStudent) {
         if(strcmp(student.sRollNo, reqStudent->sRollNo) == 0) {
             
             bzero(writeBuf, sizeof(writeBuf));
-            strcpy(writeBuf, "$ Enter the new password: ");
+            strcpy(writeBuf, REQ_NEW_PASSWORD);
             if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return false;
             strcpy(student.sPassword, readBuf);
 
             lseek(studentFD, -1*sizeof(student), SEEK_CUR);
             writeBytes = write(studentFD, &student, sizeof(student));
             if(writeBytes == -1) {
-                perror("!! Error while writing the student details to database !!");
+                perror(ERROR_WRITING_STUDENT_DB);
                 close(studentFD);
                 return false;
             }
@@ -64,10 +64,10 @@ bool changeStudentPassword(int clientConnectionFD, struct Student *reqStudent) {
     }
 
     bzero(writeBuf, sizeof(writeBuf));
-    strcpy(writeBuf, "# Failed to update the password\n");
+    strcpy(writeBuf, UNABLE_UPDATE_PASSWORD);
     writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
     if(writeBytes == -1) {
-        perror("!! Error while sending the student details to client !!");
+        perror(ERROR_WRITING_RESPONSE);
     }
 
     close(studentFD);
@@ -82,25 +82,25 @@ void enrollCourse(int clientConnectionFD, struct Student *reqStudent) {
     bzero(writeBuf, sizeof(writeBuf));
 
     int cid;
-    strcpy(writeBuf, "Enter the course id: ");
+    strcpy(writeBuf, REQ_COURSE_ID);
     if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
     cid = atoi(readBuf);
 
     struct Course course;
     char databaseFile[50];
-    strcpy(databaseFile, "./database/");
+    strcpy(databaseFile, DATABASE_PATH);
     strcat(databaseFile, COURSE_DATABASE);
 
     int courseFD = open(databaseFile, O_CREAT | O_RDWR, 0777);
     if(courseFD == -1) {
-        perror("!! Error while opening course database file !!");
+        perror(ERROR_OPEN_COURSE);
 
         bzero(writeBuf, sizeof(writeBuf));
         strcpy(writeBuf, "&");
 
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error while writing logout message to client !!");
+            perror(ERROR_REPORTING_LOGOUT_MESSAGE);
             return;
         }
         return;
@@ -112,10 +112,10 @@ void enrollCourse(int clientConnectionFD, struct Student *reqStudent) {
 
     bzero(writeBuf, sizeof(writeBuf));
     if(readBytes == 0) {    
-        sprintf(writeBuf, "# Couldn't find Course with ID: %d\n", cid);
+        sprintf(writeBuf, UNABLE_FIND_COURSE_GLOBAL, cid);
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error while sending the response to client !!");
+            perror(ERROR_WRITING_TO_CLIENT);
             close(courseFD);
             return;
         }
@@ -125,10 +125,10 @@ void enrollCourse(int clientConnectionFD, struct Student *reqStudent) {
 
     if(course.cCurrentAvailableSeats <= 0) {
         bzero(writeBuf, sizeof(writeBuf));
-        strcpy(writeBuf, "# No Seats available in course.\n");
+        strcpy(writeBuf, NO_SEATS_AVAILABLE);
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error while sending the response to client !!");
+            perror(ERROR_WRITING_TO_CLIENT);
             close(courseFD);
             return;
         }
@@ -137,19 +137,19 @@ void enrollCourse(int clientConnectionFD, struct Student *reqStudent) {
     }
 
     char courseDatabaseFile[50];
-    strcpy(courseDatabaseFile, "./database/");
+    strcpy(courseDatabaseFile, DATABASE_PATH);
     strcat(courseDatabaseFile, course.databasePath);
 
     int courseDbFD = open(courseDatabaseFile, O_CREAT | O_RDWR | O_APPEND, 0777);
     if(courseDbFD == -1) {
-        perror("!! Error while opening course database file !!");
+        perror(ERROR_OPEN_COURSE);
 
         bzero(writeBuf, sizeof(writeBuf));
         strcpy(writeBuf, "&");
 
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error while writing logout message to client !!");
+            perror(ERROR_REPORTING_LOGOUT_MESSAGE);
             return;
         }
         return;
@@ -168,7 +168,7 @@ void enrollCourse(int clientConnectionFD, struct Student *reqStudent) {
         newEnroll.sid = reqStudent->sId;
         writeBytes = write(courseDbFD, &newEnroll, sizeof(newEnroll));
         if(writeBytes == -1) {
-            perror("!! Error while enrolling the student to course !!");
+            perror(ERROR_ENROLLING_STUDENT);
             close(courseFD);
             close(courseDbFD);
             return;
@@ -179,17 +179,17 @@ void enrollCourse(int clientConnectionFD, struct Student *reqStudent) {
         lseek(courseFD, -1*sizeof(course), SEEK_CUR);
         writeBytes = write(courseFD, &course, sizeof(course));
         if(writeBytes == -1) {
-            perror("!! Error while writing the course details to database !!");
+            perror(ERROR_WRITING_COURSE_DB);
             close(courseFD);
             close(courseDbFD);
             return;
         }
 
         bzero(writeBuf, sizeof(writeBuf));
-        strcpy(writeBuf, "# Successfully enrolled in the course\n");
+        strcpy(writeBuf, "\n# Successfully enrolled in the course\n");
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error while sending the response to client !!");
+            perror(ERROR_WRITING_TO_CLIENT);
         }
 
         close(courseFD);
@@ -198,10 +198,10 @@ void enrollCourse(int clientConnectionFD, struct Student *reqStudent) {
     }
 
     bzero(writeBuf, sizeof(writeBuf));
-    strcpy(writeBuf, "# Already enrolled in the course.\n");
+    strcpy(writeBuf, "\n# Already enrolled in the course.\n");
     writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
     if(writeBytes == -1) {
-        perror("!! Error while sending the response to client !!");
+        perror(ERROR_WRITING_RESPONSE);
         close(courseDbFD);
         close(courseFD);
         return;
@@ -219,37 +219,37 @@ void viewAllCourses(int clientConnectionFD, struct Student *reqStudent) {
 
     struct Course course;
     char databaseFile[50];
-    strcpy(databaseFile, "./database/");
+    strcpy(databaseFile, DATABASE_PATH);
     strcat(databaseFile, COURSE_DATABASE);
 
     int courseFD = open(databaseFile, O_CREAT | O_RDONLY, 0777);
     if(courseFD == -1) {
-        perror("!! Error while opening course database file !!");
+        perror(ERROR_OPEN_COURSE);
 
         bzero(writeBuf, sizeof(writeBuf));
         strcpy(writeBuf, "&");
 
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error while writing logout message to client !!");
+            perror(ERROR_REPORTING_LOGOUT_MESSAGE);
             return;
         }
         return;
     }
 
-    strcpy(writeBuf, "# ----- Course List -----\n");
+    strcpy(writeBuf, COURSE_LIST_HEADING);
     while((readBytes = read(courseFD, &course, sizeof(course))) != 0) {
         if(course.active == 1) {
             bzero(tempBuf, sizeof(tempBuf));
-            sprintf(tempBuf, "Course id: %d\nName: %s\nTotal Seats: %d\nAvailable Seats: %d\nDepartment: %s\nCredits: %d\n\n"
-            , course.cId, course.cName, course.cTotalSeats, course.cCurrentAvailableSeats, course.cDepartment, course.cCredits);
+            sprintf(tempBuf, COURSE_DETAILS_PRINT, 
+                course.cId, course.cName, course.cTotalSeats, course.cCurrentAvailableSeats, course.cDepartment, course.cCredits);
             strcat(writeBuf, tempBuf);
         }
     }
 
     writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
     if(writeBytes == -1) {
-        perror("!! Error while writing response to client !!");
+        perror(ERROR_WRITING_TO_CLIENT);
     }
 
     close(courseFD);
@@ -264,25 +264,25 @@ void dropCourse(int clientConnectionFD, struct Student *reqStudent) {
     bzero(writeBuf, sizeof(writeBuf));
 
     int cid;
-    strcpy(writeBuf, "Enter the course id: ");
+    strcpy(writeBuf, REQ_COURSE_ID);
     if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
     cid = atoi(readBuf);
 
     struct Course course;
     char databaseFile[50];
-    strcpy(databaseFile, "./database/");
+    strcpy(databaseFile, DATABASE_PATH);
     strcat(databaseFile, COURSE_DATABASE);
 
     int courseFD = open(databaseFile, O_CREAT | O_RDWR, 0777);
     if(courseFD == -1) {
-        perror("!! Error while opening course database file !!");
+        perror(ERROR_OPEN_COURSE);
 
         bzero(writeBuf, sizeof(writeBuf));
         strcpy(writeBuf, "&");
 
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error while writing logout message to client !!");
+            perror(ERROR_REPORTING_LOGOUT_MESSAGE);
             return;
         }
         return;
@@ -294,10 +294,10 @@ void dropCourse(int clientConnectionFD, struct Student *reqStudent) {
 
     bzero(writeBuf, sizeof(writeBuf));
     if(readBytes == 0) {    
-        sprintf(writeBuf, "# Couldn't find Course with ID: %d\n", cid);
+        sprintf(writeBuf, UNABLE_FIND_COURSE_GLOBAL, cid);
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error while sending the response to client !!");
+            perror(ERROR_WRITING_TO_CLIENT);
             close(courseFD);
             return;
         }
@@ -306,19 +306,19 @@ void dropCourse(int clientConnectionFD, struct Student *reqStudent) {
     }
 
     char courseDatabaseFile[50];
-    strcpy(courseDatabaseFile, "./database/");
+    strcpy(courseDatabaseFile, DATABASE_PATH);
     strcat(courseDatabaseFile, course.databasePath);
 
     int courseDbFD = open(courseDatabaseFile, O_CREAT | O_RDWR , 0777);
     if(courseDbFD == -1) {
-        perror("!! Error while opening course database file !!");
+        perror(ERROR_OPEN_COURSE);
 
         bzero(writeBuf, sizeof(writeBuf));
         strcpy(writeBuf, "&");
 
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error while writing logout message to client !!");
+            perror(ERROR_REPORTING_LOGOUT_MESSAGE);
             return;
         }
         return;
@@ -336,7 +336,7 @@ void dropCourse(int clientConnectionFD, struct Student *reqStudent) {
         lseek(courseDbFD, -1*sizeof(enrolled), SEEK_CUR);
         writeBytes = write(courseDbFD, &enrolled, sizeof(enrolled));
         if(writeBytes == -1) {
-            perror("!! Error while droping course !!");
+            perror(ERROR_DROP_COURSE);
             close(courseFD);
             close(courseDbFD);
             return;
@@ -347,17 +347,17 @@ void dropCourse(int clientConnectionFD, struct Student *reqStudent) {
         lseek(courseFD, -1*sizeof(course), SEEK_CUR);
         writeBytes = write(courseFD, &course, sizeof(course));
         if(writeBytes == -1) {
-            perror("!! Error while writing the course details to database !!");
+            perror(ERROR_WRITING_COURSE_DB);
             close(courseFD);
             close(courseDbFD);
             return;
         }
 
         bzero(writeBuf, sizeof(writeBuf));
-        strcpy(writeBuf, "# Successfully dropped the course\n");
+        strcpy(writeBuf, "\n# Successfully dropped the course\n");
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error while sending the response to client !!");
+            perror(ERROR_WRITING_RESPONSE);
         }
 
         close(courseFD);
@@ -366,10 +366,10 @@ void dropCourse(int clientConnectionFD, struct Student *reqStudent) {
     }
 
     bzero(writeBuf, sizeof(writeBuf));
-    strcpy(writeBuf, "# Student not present in the course.\n");
+    strcpy(writeBuf, "\n# Student not present in the course.\n");
     writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
     if(writeBytes == -1) {
-        perror("!! Error while sending the response to client !!");
+        perror(ERROR_WRITING_TO_CLIENT);
         close(courseDbFD);
         close(courseFD);
         return;
@@ -386,25 +386,25 @@ void viewEnrolledCourseDetail(int clientConnectionFD, struct Student *reqStudent
     bzero(writeBuf, sizeof(writeBuf));
 
     int cid;
-    strcpy(writeBuf, "Enter the course id: ");
+    strcpy(writeBuf, REQ_COURSE_ID);
     if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
     cid = atoi(readBuf);
 
     struct Course course;
     char databaseFile[50];
-    strcpy(databaseFile, "./database/");
+    strcpy(databaseFile, DATABASE_PATH);
     strcat(databaseFile, COURSE_DATABASE);
 
     int courseFD = open(databaseFile, O_CREAT | O_RDONLY, 0777);
     if(courseFD == -1) {
-        perror("!! Error while opening course database file !!");
+        perror(ERROR_OPEN_COURSE);
 
         bzero(writeBuf, sizeof(writeBuf));
         strcpy(writeBuf, "&");
 
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error while writing logout message to client !!");
+            perror(ERROR_WRITING_TO_CLIENT);
             return;
         }
         return;
@@ -416,10 +416,10 @@ void viewEnrolledCourseDetail(int clientConnectionFD, struct Student *reqStudent
 
     bzero(writeBuf, sizeof(writeBuf));
     if(readBytes == 0) {    
-        sprintf(writeBuf, "# Couldn't find Course with ID: %d\n", cid);
+        sprintf(writeBuf, UNABLE_FIND_COURSE_GLOBAL, cid);
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error while sending the response to client !!");
+            perror(ERROR_WRITING_RESPONSE);
             close(courseFD);
             return;
         }
@@ -428,19 +428,19 @@ void viewEnrolledCourseDetail(int clientConnectionFD, struct Student *reqStudent
     }
 
     char courseDatabaseFile[50];
-    strcpy(courseDatabaseFile, "./database/");
+    strcpy(courseDatabaseFile, DATABASE_PATH);
     strcat(courseDatabaseFile, course.databasePath);
 
     int courseDbFD = open(courseDatabaseFile, O_CREAT | O_RDONLY , 0777);
     if(courseDbFD == -1) {
-        perror("!! Error while opening course database file !!");
+        perror(ERROR_OPEN_COURSE);
 
         bzero(writeBuf, sizeof(writeBuf));
         strcpy(writeBuf, "&");
 
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error while writing logout message to client !!");
+            perror(ERROR_REPORTING_LOGOUT_MESSAGE);
             return;
         }
         return;
@@ -455,10 +455,10 @@ void viewEnrolledCourseDetail(int clientConnectionFD, struct Student *reqStudent
     if(readBytes == 0) {    
 
         bzero(writeBuf, sizeof(writeBuf));
-        strcpy(writeBuf, "# Student is not enrolled in the course\n");
+        strcpy(writeBuf, "\n# Student is not enrolled in the course\n");
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error while sending the response to client !!");
+            perror(ERROR_WRITING_RESPONSE);
         }
 
         close(courseFD);
@@ -467,11 +467,11 @@ void viewEnrolledCourseDetail(int clientConnectionFD, struct Student *reqStudent
     }
 
     bzero(writeBuf, sizeof(writeBuf));
-    sprintf(writeBuf, "\n# Course Details\nCourse id: %d\nName: %s\nTotal Seats: %d\nAvailable Seats: %d\nDepartment: %s\nCredits: %d\n\n"
+    sprintf(writeBuf, COURSE_DETAILS_PRINT
             , course.cId, course.cName, course.cTotalSeats, course.cCurrentAvailableSeats, course.cDepartment, course.cCredits);
     writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
     if(writeBytes == -1) {
-        perror("!! Error while sending the response to client !!");
+        perror(ERROR_WRITING_RESPONSE);
         close(courseDbFD);
         close(courseFD);
         return;
@@ -489,35 +489,35 @@ void viewAllEnrolledCourses(int clientConnectionFD, struct Student *reqStudent) 
 
     struct Course course;
     char databaseFile[50];
-    strcpy(databaseFile, "./database/");
+    strcpy(databaseFile, DATABASE_PATH);
     strcat(databaseFile, COURSE_DATABASE);
 
     int courseFD = open(databaseFile, O_CREAT | O_RDWR, 0777);
     if(courseFD == -1) {
-        perror("!! Error while opening course database file !!");
+        perror(ERROR_OPEN_COURSE);
 
         bzero(writeBuf, sizeof(writeBuf));
         strcpy(writeBuf, "&");
 
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error while writing logout message to client !!");
+            perror(ERROR_REPORTING_LOGOUT_MESSAGE);
             return;
         }
         return;
     }
 
     bzero(writeBuf, sizeof(writeBuf));
-    strcpy(writeBuf, "# List of Courses in which you are enrolled \n\n");
+    strcpy(writeBuf, COURSE_LIST_HEADING);
     while((readBytes = read(courseFD, &course, sizeof(course))) != 0) {
         if(course.active == 0) continue;
 
         char courseDatabaseFile[50];
-        strcpy(courseDatabaseFile, "./database/");
+        strcpy(courseDatabaseFile, DATABASE_PATH);
         strcat(courseDatabaseFile, course.databasePath);
         int courseDbFD = open(courseDatabaseFile, O_CREAT | O_RDWR, 0777);
         if(courseDbFD == -1) {
-            perror("!! Error while opening course's database file !!");
+            perror(ERROR_OPEN_COURSE);
             continue;
         }
 
@@ -527,7 +527,7 @@ void viewAllEnrolledCourses(int clientConnectionFD, struct Student *reqStudent) 
         }
         if(readBytes > 0) {
             bzero(tempBuf, sizeof(tempBuf));
-            sprintf(tempBuf, "Course Id: %d\n\n", course.cId);
+            sprintf(tempBuf, "Course Id: %d\n", course.cId);
             strcat(writeBuf, tempBuf);
         }
         close(courseDbFD);
@@ -535,7 +535,7 @@ void viewAllEnrolledCourses(int clientConnectionFD, struct Student *reqStudent) 
 
     writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
     if(writeBytes == -1) {
-        perror("!! Error while sending the response to client !!");
+        perror(ERROR_WRITING_RESPONSE);
     }
 
     close(courseFD);
@@ -558,16 +558,16 @@ void rootStudentController(int clientConnectionFD) {
             strcat(writeBuf, STUDENTYPAGE);
             writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
             if(writeBytes == -1) {
-                perror("!! Error while sending the Student choice Page !!");
+                perror(ERROR_SENDING_STUDENT_CHOICE);
                 return;
             }
 
             readBytes = read(clientConnectionFD, readBuf, sizeof(readBuf));
             if(readBytes == -1) {
-                perror("!! Error while reading the Student's choice !!");
+                perror(ERROR_READING_STUDENT_CHOICE);
                 return;
             } else if(readBytes == 0) {
-                perror("No data received from the Student side");
+                perror(NO_DATA_RECEIVED);
                 return;
             }
             studentChoice = atoi(readBuf);

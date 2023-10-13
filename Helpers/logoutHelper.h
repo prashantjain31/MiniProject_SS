@@ -24,12 +24,12 @@ bool logoutHandler(int loginType, struct Student *reqStudent, struct Faculty *re
 
     if(loginType == 1) {
         char databaseFile[50];
-        strcpy(databaseFile, "./database/");
+        strcpy(databaseFile, DATABASE_PATH);
         strcat(databaseFile, STUDENT_DATABASE);
 
         int studentFD = open(databaseFile, O_CREAT | O_RDWR, 0777);
         if(studentFD == -1) {
-            perror("!! Error while opening student database file !!");
+            perror(ERROR_OPEN_STUDENT);
             return false;
         }
 
@@ -40,7 +40,7 @@ bool logoutHandler(int loginType, struct Student *reqStudent, struct Faculty *re
                 lseek(studentFD, -1*sizeof(student), SEEK_CUR);
                 writeBytes = write(studentFD, &student, sizeof(student));
                 if(writeBytes == -1) {
-                    perror("!! Error while writing the student details to database !!");
+                    perror(ERROR_WRITING_STUDENT_DB);
                     close(studentFD);
                     return false;
                 }
@@ -53,12 +53,12 @@ bool logoutHandler(int loginType, struct Student *reqStudent, struct Faculty *re
         return false;
     } else if(loginType == 2) {
         char databaseFile[50];
-        strcpy(databaseFile, "./database/");
+        strcpy(databaseFile, DATABASE_PATH);
         strcat(databaseFile, FACULTY_DATABASE);
 
         int facultyFD = open(databaseFile, O_CREAT | O_RDWR, 0777);
         if(facultyFD == -1) {
-            perror("!! Error while opening faculty database file !!");
+            perror(ERROR_OPEN_FACULTY);
             return false;
         }
 
@@ -69,7 +69,7 @@ bool logoutHandler(int loginType, struct Student *reqStudent, struct Faculty *re
                 lseek(facultyFD, -1*sizeof(faculty), SEEK_CUR);
                 writeBytes = write(facultyFD, &faculty, sizeof(faculty));
                 if(writeBytes == -1) {
-                    perror("!! Error while writing the faculty details to database !!");
+                    perror(ERROR_WRITING_FACULTY_DB);
                     close(facultyFD);
                     return false;
                 }

@@ -50,18 +50,18 @@ void addStudent(int clientConnectionFD) {
     strcpy(newStudent.sRollNo, readBuf);
 
     char trackFile[50];
-    strcpy(trackFile, "./database/");
+    strcpy(trackFile, DATABASE_PATH);
     strcat(trackFile, TRACK_FILE);
     int trackFD = open(trackFile, O_CREAT | O_RDWR, 0777);
     if(trackFD == -1) {
-        perror("!! Error while opening track database file !!");
+        perror(ERROR_OPEN_TRACK);
 
         bzero(writeBuf, sizeof(writeBuf));
         strcpy(writeBuf, "&");
 
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error while writing logout message to client !!");
+            perror(ERROR_REPORTING_LOGOUT_MESSAGE);
             return;
         }
         return;
@@ -86,19 +86,19 @@ void addStudent(int clientConnectionFD) {
     strcpy(newStudent.sPassword, DEFAULT_PASS);
 
     char databaseFile[50];
-    strcpy(databaseFile, "./database/");
+    strcpy(databaseFile, DATABASE_PATH);
     strcat(databaseFile, STUDENT_DATABASE);
 
     int studentFD = open(databaseFile, O_CREAT | O_RDWR | O_APPEND, 0777);
     if(studentFD == -1) {
-        perror("!! Error while opening student database file !!");
+        perror(ERROR_OPEN_STUDENT);
 
         bzero(writeBuf, sizeof(writeBuf));
         strcpy(writeBuf, "&");
 
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error while writing logout message to client !!");
+            perror(ERROR_REPORTING_LOGOUT_MESSAGE);
             return;
         }
         return;
@@ -106,13 +106,13 @@ void addStudent(int clientConnectionFD) {
 
     writeBytes = write(studentFD, &newStudent, sizeof(newStudent));
     if(writeBytes == -1) {
-        perror("!! Error while writing student to databasse !!");
+        perror(ERROR_WRITING_STUDENT_DB);
         bzero(writeBuf, sizeof(writeBuf));
         strcpy(writeBuf, "&");
 
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error while writing to client !!");
+            perror(ERROR_WRITING_TO_CLIENT);
             return;
         }
         close(trackFD);
@@ -121,10 +121,10 @@ void addStudent(int clientConnectionFD) {
     }
 
     bzero(writeBuf, sizeof(writeBuf));
-    sprintf(writeBuf, "# Student Added Successfully with Roll Number: %s\n", newStudent.sRollNo);
+    sprintf(writeBuf, STUDENT_ADDED, newStudent.sRollNo);
     writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
     if(writeBytes == -1) {
-        perror("!! Error while reporting the response !!");
+        perror(ERROR_WRITING_RESPONSE);
     }
 
     close(trackFD);
@@ -141,25 +141,25 @@ void viewStudent(int clientConnectionFD) {
 
     listStudents(clientConnectionFD, writeBuf, sizeof(writeBuf));
 
-    strcat(writeBuf, "Enter the student roll number: ");
+    strcat(writeBuf, REQ_STUDENT_ROLLNO);
     if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
     char rollnumber[20];
     strcpy(rollnumber, readBuf);
     
     char databaseFile[50];
-    strcpy(databaseFile, "./database/");
+    strcpy(databaseFile, DATABASE_PATH);
     strcat(databaseFile, STUDENT_DATABASE);
 
     int studentFD = open(databaseFile, O_CREAT | O_RDONLY, 0777);
     if(studentFD == -1) {
-        perror("!! Error while opening student database file !!");
+        perror(ERROR_OPEN_STUDENT);
 
         bzero(writeBuf, sizeof(writeBuf));
         strcpy(writeBuf, "&");
 
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error while writing logout message to client !!");
+            perror(ERROR_REPORTING_LOGOUT_MESSAGE);
             return;
         }
         return;
@@ -172,22 +172,22 @@ void viewStudent(int clientConnectionFD) {
 
     bzero(writeBuf, sizeof(writeBuf));
     if(readBytes == 0) {    
-        sprintf(writeBuf, "# Couldn't find Student with Roll Number: %s\n", rollnumber);
+        sprintf(writeBuf, UNABLE_FIND_STUDENT, rollnumber);
     } else {
-        sprintf(writeBuf, "# Student Details \nName: %s\nAddress: %s\nAge: %d\nRoll Number: %s\nActive Status(1 = Active and 0 = Blocked): %d\nOnline Status(1 = Online and 0 = Offline): %d\n", 
+        sprintf(writeBuf, STUDENT_DETAILS_PRINT, 
             student.sName, student.sAddress, student.sAge, student.sRollNo, student.active, student.online);
     }
 
     writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
     if(writeBytes == -1) {
-        perror("!! Error while sending the student details to client !!");
+        perror(ERROR_WRITING_RESPONSE);
         
         bzero(writeBuf, sizeof(writeBuf));
         strcpy(writeBuf, "&");
 
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error while writing to client !!");
+            perror(ERROR_WRITING_TO_CLIENT);
             return;
         }
 
@@ -208,25 +208,25 @@ void activateStudent(int clientConnectionFD) {
 
     listStudents(clientConnectionFD, writeBuf, sizeof(writeBuf));
 
-    strcat(writeBuf, "Enter the student roll number: ");
+    strcat(writeBuf, REQ_STUDENT_ROLLNO);
     if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
     char rollnumber[20];
     strcpy(rollnumber, readBuf);
     
     char databaseFile[50];
-    strcpy(databaseFile, "./database/");
+    strcpy(databaseFile, DATABASE_PATH);
     strcat(databaseFile, STUDENT_DATABASE);
 
     int studentFD = open(databaseFile, O_CREAT | O_RDWR, 0777);
     if(studentFD == -1) {
-        perror("!! Error while opening student database file !!");
+        perror(ERROR_WRITING_STUDENT_DB);
 
         bzero(writeBuf, sizeof(writeBuf));
         strcpy(writeBuf, "&");
 
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error while writing logout message to client !!");
+            perror(ERROR_REPORTING_LOGOUT_MESSAGE);
             return;
         }
         return;
@@ -239,10 +239,10 @@ void activateStudent(int clientConnectionFD) {
 
     bzero(writeBuf, sizeof(writeBuf));
     if(readBytes == 0) {    
-        sprintf(writeBuf, "# Couldn't find Student with Roll Number: %s\n", rollnumber);
+        sprintf(writeBuf, UNABLE_FIND_STUDENT, rollnumber);
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error while sending the student details to client !!");
+            perror(ERROR_WRITING_RESPONSE);
             close(studentFD);
             return;
         }
@@ -254,16 +254,16 @@ void activateStudent(int clientConnectionFD) {
     lseek(studentFD, -1*sizeof(student), SEEK_CUR);
     writeBytes = write(studentFD, &student, sizeof(student));
     if(writeBytes == -1) {
-        perror("!! Error while writing the student details to database !!");
+        perror(ERROR_WRITING_STUDENT_DB);
         close(studentFD);
         return;
     }
 
     bzero(writeBuf, sizeof(writeBuf));
-    strcpy(writeBuf, "# Successfully activated the student access\n");
+    strcpy(writeBuf, "\n# Successfully activated the student access\n");
     writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
     if(writeBytes == -1) {
-        perror("!! Error while sending the student details to client !!");
+        perror(ERROR_WRITING_RESPONSE);
     }
 
     close(studentFD);
@@ -279,25 +279,25 @@ void blockStudent(int clientConnectionFD) {
 
     listStudents(clientConnectionFD, writeBuf, sizeof(writeBuf));
 
-    strcat(writeBuf, "Enter the student roll number: ");
+    strcat(writeBuf, REQ_STUDENT_ROLLNO);
     if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
     char rollnumber[20];
     strcpy(rollnumber, readBuf);
     
     char databaseFile[50];
-    strcpy(databaseFile, "./database/");
+    strcpy(databaseFile, DATABASE_PATH);
     strcat(databaseFile, STUDENT_DATABASE);
 
     int studentFD = open(databaseFile, O_CREAT | O_RDWR, 0777);
     if(studentFD == -1) {
-        perror("!! Error while opening student database file !!");
+        perror(ERROR_OPEN_STUDENT);
 
         bzero(writeBuf, sizeof(writeBuf));
         strcpy(writeBuf, "&");
 
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error while writing logout message to client !!");
+            perror(ERROR_REPORTING_LOGOUT_MESSAGE);
             return;
         }
         return;
@@ -310,10 +310,10 @@ void blockStudent(int clientConnectionFD) {
 
     bzero(writeBuf, sizeof(writeBuf));
     if(readBytes == 0) {    
-        sprintf(writeBuf, "# Couldn't find Student with Roll Number: %s\n", rollnumber);
+        sprintf(writeBuf, UNABLE_FIND_STUDENT, rollnumber);
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error while sending the student details to client !!");
+            perror(ERROR_WRITING_RESPONSE);
             close(studentFD);
             return;
         }
@@ -325,24 +325,24 @@ void blockStudent(int clientConnectionFD) {
     lseek(studentFD, -1*sizeof(student), SEEK_CUR);
     writeBytes = write(studentFD, &student, sizeof(student));
     if(writeBytes == -1) {
-        perror("!! Error while writing the student details to database !!");
+        perror(ERROR_WRITING_STUDENT_DB);
         close(studentFD);
         return;
     }
 
     char courseFile[50];
-    strcpy(courseFile, "./database/");
+    strcpy(courseFile, DATABASE_PATH);
     strcat(courseFile, COURSE_DATABASE);
     int courseFD = open(courseFile, O_CREAT | O_RDWR, 0777);
     if(courseFD == -1) {
-        perror("!! Error while opening course database file !!");
+        perror(ERROR_OPEN_COURSE);
 
         bzero(writeBuf, sizeof(writeBuf));
         strcpy(writeBuf, "&");
 
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error while writing logout message to client !!");
+            perror(ERROR_REPORTING_LOGOUT_MESSAGE);
             return;
         }
         return;
@@ -352,11 +352,11 @@ void blockStudent(int clientConnectionFD) {
         if(course.active == 0) continue;
 
         char courseDatabaseFile[50];
-        strcpy(courseDatabaseFile, "./database/");
+        strcpy(courseDatabaseFile, DATABASE_PATH);
         strcat(courseDatabaseFile, course.databasePath);
         int courseDbFD = open(courseDatabaseFile, O_CREAT | O_RDWR, 0777);
         if(courseDbFD == -1) {
-            perror("!! Error while opening course's database file !!");
+            perror(ERROR_OPEN_COURSE);
             continue;
         }
 
@@ -380,10 +380,10 @@ void blockStudent(int clientConnectionFD) {
     close(courseFD);
 
     bzero(writeBuf, sizeof(writeBuf));
-    strcpy(writeBuf, "# Successfully blocked the student access\n");
+    strcpy(writeBuf, "\n# Successfully blocked the student access\n");
     writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
     if(writeBytes == -1) {
-        perror("!! Error while sending the student details to client !!");
+        perror(ERROR_WRITING_RESPONSE);
     }
 
     close(studentFD);
@@ -399,25 +399,25 @@ void modifyStudent(int clientConnectionFD) {
 
     listStudents(clientConnectionFD, writeBuf, sizeof(writeBuf));
 
-    strcat(writeBuf, "Enter the student roll number: ");
+    strcat(writeBuf, REQ_STUDENT_ROLLNO);
     if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
     char rollnumber[20];
     strcpy(rollnumber, readBuf);
     
     char databaseFile[50];
-    strcpy(databaseFile, "./database/");
+    strcpy(databaseFile, DATABASE_PATH);
     strcat(databaseFile, STUDENT_DATABASE);
 
     int studentFD = open(databaseFile, O_CREAT | O_RDWR, 0777);
     if(studentFD == -1) {
-        perror("!! Error while opening student database file !!");
+        perror(ERROR_OPEN_STUDENT);
 
         bzero(writeBuf, sizeof(writeBuf));
         strcpy(writeBuf, "&");
 
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error while writing logout message to client !!");
+            perror(ERROR_REPORTING_LOGOUT_MESSAGE);
             return;
         }
         return;
@@ -430,10 +430,10 @@ void modifyStudent(int clientConnectionFD) {
 
     bzero(writeBuf, sizeof(writeBuf));
     if(readBytes == 0) {    
-        sprintf(writeBuf, "# Couldn't find Student with Roll Number: %s\n", rollnumber);
+        sprintf(writeBuf, UNABLE_FIND_STUDENT, rollnumber);
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error while sending the student details to client !!");
+            perror(ERROR_WRITING_RESPONSE);
             close(studentFD);
             return;
         }
@@ -443,11 +443,10 @@ void modifyStudent(int clientConnectionFD) {
 
     if(student.online == 1) {
         bzero(writeBuf, sizeof(writeBuf));
-        strcpy(writeBuf, "# ");
-        strcat(writeBuf, CANNOT_CHANGE);
+        strcpy(writeBuf, CANNOT_CHANGE);
         write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error writing the message to client !!");
+            perror(ERROR_WRITING_TO_CLIENT);
             close(studentFD);
             return;
         }
@@ -502,16 +501,16 @@ void modifyStudent(int clientConnectionFD) {
     lseek(studentFD, -1*sizeof(student), SEEK_CUR);
     writeBytes = write(studentFD, &student, sizeof(student));
     if(writeBytes == -1) {
-        perror("!! Error while writing the student details to database !!");
+        perror(ERROR_WRITING_STUDENT_DB);
         close(studentFD);
         return;
     }
 
     bzero(writeBuf, sizeof(writeBuf));
-    strcpy(writeBuf, "# Successfully updated the student details\n");
+    strcpy(writeBuf, "\n# Successfully updated the student details\n");
     writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
     if(writeBytes == -1) {
-        perror("!! Error while sending the student details to client !!");
+        perror(ERROR_WRITING_RESPONSE);
     }
 
     close(studentFD);
@@ -543,18 +542,18 @@ void addFaculty(int clientConnectionFD) {
     strcpy(newFaculty.fDepartment, readBuf);
 
     char trackFile[50];
-    strcpy(trackFile, "./database/");
+    strcpy(trackFile, DATABASE_PATH);
     strcat(trackFile, TRACK_FILE);
     int trackFD = open(trackFile, O_CREAT | O_RDWR, 0777);
     if(trackFD == -1) {
-        perror("!! Error while opening track database file !!");
+        perror(ERROR_OPEN_TRACK);
 
         bzero(writeBuf, sizeof(writeBuf));
         strcpy(writeBuf, "&");
 
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error while writing logout message to client !!");
+            perror(ERROR_REPORTING_LOGOUT_MESSAGE);
             return;
         }
         return;
@@ -581,19 +580,19 @@ void addFaculty(int clientConnectionFD) {
     strcpy(newFaculty.fPassword, DEFAULT_PASS);
 
     char databaseFile[50];
-    strcpy(databaseFile, "./database/");
+    strcpy(databaseFile, DATABASE_PATH);
     strcat(databaseFile, FACULTY_DATABASE);
 
     int facultyFD = open(databaseFile, O_CREAT | O_RDWR | O_APPEND, 0777);
     if(facultyFD == -1) {
-        perror("!! Error while opening faculty database file !!");
+        perror(ERROR_OPEN_FACULTY);
 
         bzero(writeBuf, sizeof(writeBuf));
         strcpy(writeBuf, "&");
 
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error while writing logout message to client !!");
+            perror(ERROR_REPORTING_LOGOUT_MESSAGE);
             return;
         }
         return;
@@ -601,17 +600,17 @@ void addFaculty(int clientConnectionFD) {
 
     writeBytes = write(facultyFD, &newFaculty, sizeof(newFaculty));
     if(writeBytes == -1) {
-        perror("!! Error while writing faculty to databasse !!");
+        perror(ERROR_WRITING_FACULTY_DB);
         close(trackFD);
         close(facultyFD);
         return;
     }
 
     bzero(writeBuf, sizeof(writeBuf));
-    sprintf(writeBuf, "# Faculty Added Successfully with login id: %s\n", newFaculty.fLogin);
+    sprintf(writeBuf, FACULTY_ADDED, newFaculty.fLogin);
     writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
     if(writeBytes == -1) {
-        perror("!! Error while reporting the response !!");
+        perror(ERROR_WRITING_RESPONSE);
     }
 
     close(trackFD);
@@ -628,25 +627,25 @@ void viewFaculty(int clientConnectionFD) {
 
     listFaculty(clientConnectionFD, writeBuf, sizeof(writeBuf));
 
-    strcat(writeBuf, "Enter the faculty login id: ");
+    strcat(writeBuf, REQ_FACULTY_LOGINID);
     if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
     char login[20];
     strcpy(login, readBuf);
     
     char databaseFile[50];
-    strcpy(databaseFile, "./database/");
+    strcpy(databaseFile, DATABASE_PATH);
     strcat(databaseFile, FACULTY_DATABASE);
 
     int facultyFD = open(databaseFile, O_CREAT | O_RDONLY, 0777);
     if(facultyFD == -1) {
-        perror("!! Error while opening faculty database file !!");
+        perror(ERROR_OPEN_FACULTY);
 
         bzero(writeBuf, sizeof(writeBuf));
         strcpy(writeBuf, "&");
 
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error while writing logout message to client !!");
+            perror(ERROR_REPORTING_LOGOUT_MESSAGE);
             return;
         }
         return;
@@ -659,15 +658,15 @@ void viewFaculty(int clientConnectionFD) {
 
     bzero(writeBuf, sizeof(writeBuf));
     if(readBytes == 0) {    
-        sprintf(writeBuf, "# Couldn't find faculty with login: %s\n", login);
+        sprintf(writeBuf, UNABLE_FIND_FACULTY, login);
     } else {
-        sprintf(writeBuf, "# Faculty Details \nName: %s\nAddress: %s\nLogin: %s\nDepartment: %s\nActive Status(1 = Active and 0 = Blocked): %d\nOnline status(1 = Online and 0 = Offline): %d\n", 
+        sprintf(writeBuf, FACULTY_DETAILS_PRINT, 
             faculty.fName, faculty.fAddress, faculty.fLogin, faculty.fDepartment, faculty.active, faculty.online);
     }
 
     writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
     if(writeBytes == -1) {
-        perror("!! Error while sending the faculty details to client !!");
+        perror(ERROR_WRITING_RESPONSE);
         close(facultyFD);
         return;
     }
@@ -685,25 +684,25 @@ void modifyFaculty(int clientConnectionFD) {
 
     listFaculty(clientConnectionFD, writeBuf, sizeof(writeBuf));
 
-    strcat(writeBuf, "Enter the faculty login id: ");
+    strcat(writeBuf, REQ_FACULTY_LOGINID);
     if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
     char login[20];
     strcpy(login, readBuf);
     
     char databaseFile[50];
-    strcpy(databaseFile, "./database/");
+    strcpy(databaseFile, DATABASE_PATH);
     strcat(databaseFile, FACULTY_DATABASE);
 
     int facultyFD = open(databaseFile, O_CREAT | O_RDWR, 0777);
     if(facultyFD == -1) {
-        perror("!! Error while opening faculty database file !!");
+        perror(ERROR_WRITING_FACULTY_DB);
 
         bzero(writeBuf, sizeof(writeBuf));
         strcpy(writeBuf, "&");
 
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error while writing logout message to client !!");
+            perror(ERROR_REPORTING_LOGOUT_MESSAGE);
             return;
         }
         return;
@@ -716,10 +715,10 @@ void modifyFaculty(int clientConnectionFD) {
 
     bzero(writeBuf, sizeof(writeBuf));
     if(readBytes == 0) {    
-        sprintf(writeBuf, "# Couldn't find Faculty with login id: %s\n", login);
+        sprintf(writeBuf, UNABLE_FIND_FACULTY, login);
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error while sending the faculty details to client !!");
+            perror(ERROR_WRITING_RESPONSE);
         }
         close(facultyFD);
         return;
@@ -727,11 +726,10 @@ void modifyFaculty(int clientConnectionFD) {
 
     if(faculty.online == 1) {
         bzero(writeBuf, sizeof(writeBuf));
-        strcpy(writeBuf, "# ");
-        strcat(writeBuf, CANNOT_CHANGE);
+        strcpy(writeBuf, CANNOT_CHANGE);
         write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error writing the message to client !!");
+            perror(ERROR_WRITING_TO_CLIENT);
             close(facultyFD);
             return;
         }
@@ -778,16 +776,16 @@ void modifyFaculty(int clientConnectionFD) {
     lseek(facultyFD, -1*sizeof(faculty), SEEK_CUR);
     writeBytes = write(facultyFD, &faculty, sizeof(faculty));
     if(writeBytes == -1) {
-        perror("!! Error while writing the faculty details to database !!");
+        perror(ERROR_WRITING_FACULTY_DB);
         close(facultyFD);
         return;
     }
 
     bzero(writeBuf, sizeof(writeBuf));
-    strcpy(writeBuf, "# Successfully updated the faculty details\n");
+    strcpy(writeBuf, "\n# Successfully updated the faculty details\n");
     writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
     if(writeBytes == -1) {
-        perror("!! Error while sending the faculty details to client !!");
+        perror(ERROR_WRITING_RESPONSE);
     }
 
     close(facultyFD);
@@ -809,16 +807,16 @@ void rootAdminController(int clientConnectionFD) {
             strcat(writeBuf, ADMINPAGE);
             writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
             if(writeBytes == -1) {
-                perror("!! Error while sending the Admin choice Page !!");
+                perror(ERROR_SENDING_ADMIN_CHOICE);
                 return;
             }
 
             readBytes = read(clientConnectionFD, readBuf, sizeof(readBuf));
             if(readBytes == -1) {
-                perror("!! Error while reading the Admin's choice !!");
+                perror(ERROR_READING_ADMIN_CHOICE);
                 return;
             } else if(readBytes == 0) {
-                perror("No data received from the Admin side");
+                perror(NO_DATA_RECEIVED);
                 return;
             }
             adminChoice = atoi(readBuf);

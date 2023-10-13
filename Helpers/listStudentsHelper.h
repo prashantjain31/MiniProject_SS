@@ -19,27 +19,27 @@ void listStudents(int clientConnectionFD, char *writeBuf, int writeSize) {
     char tempBuf[1000];
 
     char databaseFile[50];
-    strcpy(databaseFile, "./database/");
+    strcpy(databaseFile, DATABASE_PATH);
     strcat(databaseFile, STUDENT_DATABASE);
 
     int studentFD = open(databaseFile, O_CREAT | O_RDONLY, 0777);
     if(studentFD == -1) {
-        perror("!! Error while opening student database file !!");
+        perror(ERROR_OPEN_STUDENT);
 
         bzero(writeBuf, sizeof(writeBuf));
         strcpy(writeBuf, "&");
 
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
-            perror("!! Error while writing logout message to client !!");
+            perror(ERROR_REPORTING_LOGOUT_MESSAGE);
             return;
         }
         return;
     }
 
     struct Student student;
-    strcpy(writeBuf, "----- Student List -----\n");
-    strcat(writeBuf, "Roll Number -> Name\n");
+    strcpy(writeBuf, STUDENT_LIST_HEADING);
+    strcat(writeBuf, "\nRoll Number -> Name\n");
     while((readBytes = read(studentFD, &student, sizeof(student))) != 0) {
         bzero(tempBuf, sizeof(tempBuf));
         sprintf(tempBuf, "%s -> %s\n", student.sRollNo, student.sName);
