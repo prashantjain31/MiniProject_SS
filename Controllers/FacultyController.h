@@ -19,10 +19,18 @@
 #include "../Helpers/logoutHelper.h"
 #include "../Helpers/readWriteHelper.h"
 
+/*
+* @param clientConnectionFD An file descriptor for the client connection
+* @param *reqFaculty An pointer to the current logged in faculty's structure
+*                    So that its data can be accessed easily
+*
+* Handles the change faculty password functionality in the system
+*/
 bool changeFacultyPassword(int clientConnectionFD, struct Faculty *reqFaculty) {
     char readBuf[1000], writeBuf[1000];
     ssize_t readBytes, writeBytes;
 
+    // Opens the database to store the new password into the system
     char databaseFile[50];
     strcpy(databaseFile, DATABASE_PATH);
     strcat(databaseFile, FACULTY_DATABASE);
@@ -73,6 +81,13 @@ bool changeFacultyPassword(int clientConnectionFD, struct Faculty *reqFaculty) {
     return false;
 }
 
+/*
+* @param clientConnectionFD An file descriptor for the client connection
+* @param *reqFaculty An pointer to the current logged in faculty's structure
+*                    So that its data can be accessed easily
+*
+* Add's a new course offered by the logged in faculty
+*/
 void addCourse(int clientConnectionFD, struct Faculty *reqFaculty) {
     char readBuf[1000], writeBuf[1000];
     ssize_t readBytes, writeBytes;
@@ -80,6 +95,7 @@ void addCourse(int clientConnectionFD, struct Faculty *reqFaculty) {
     bzero(readBuf, sizeof(readBuf));
     bzero(writeBuf, sizeof(writeBuf));
 
+    // Takes all the new course's information as input from the client
     struct Course newCourse;
 
     strcpy(writeBuf, "Enter the course name: ");
@@ -103,6 +119,7 @@ void addCourse(int clientConnectionFD, struct Faculty *reqFaculty) {
     if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
     newCourse.cCredits = atoi(readBuf);
 
+    // Opens the track file to generate the unique id for courses
     char trackFile[50];
     strcpy(trackFile, DATABASE_PATH);
     strcat(trackFile, TRACK_FILE);
@@ -138,6 +155,7 @@ void addCourse(int clientConnectionFD, struct Faculty *reqFaculty) {
     lseek(trackFD, 2*sizeof(track), SEEK_SET);
     write(trackFD, &track, sizeof(track));
 
+    // Opens the database to store the new course information into the system and create its respective database file
     char databaseFile[50];
     strcpy(databaseFile, DATABASE_PATH);
     strcat(databaseFile, COURSE_DATABASE);
@@ -183,6 +201,8 @@ void addCourse(int clientConnectionFD, struct Faculty *reqFaculty) {
         return;
     }
 
+
+    // New database file is created using unique id
     char newDatabaseFile[50];
     strcpy(newDatabaseFile, DATABASE_PATH);
     strcat(newDatabaseFile, newCourse.databasePath);
@@ -207,6 +227,13 @@ void addCourse(int clientConnectionFD, struct Faculty *reqFaculty) {
     close(newCourseFD);
 }
 
+/*
+* @param clientConnectionFD An file descriptor for the client connection
+* @param *reqFaculty An pointer to the current logged in faculty's structure
+*                    So that its data can be accessed easily
+*
+* View all courses offered by the faculty 
+*/
 void viewAllFacultyCourses(int clientConnectionFD, struct Faculty *reqFaculty) {
     char tempBuf[1000], writeBuf[1000];
     ssize_t readBytes, writeBytes;
@@ -214,6 +241,7 @@ void viewAllFacultyCourses(int clientConnectionFD, struct Faculty *reqFaculty) {
     bzero(tempBuf, sizeof(tempBuf));
     bzero(writeBuf, sizeof(writeBuf));
 
+    // Opens the course database to retrieve all the course details
     struct Course course;
     char databaseFile[50];
     strcpy(databaseFile, DATABASE_PATH);
@@ -234,6 +262,7 @@ void viewAllFacultyCourses(int clientConnectionFD, struct Faculty *reqFaculty) {
         return;
     }
 
+    // If that course is offered by the currently logged in faculty then it is shown to user
     strcpy(writeBuf, COURSE_LIST_HEADING);
     while((readBytes = read(courseFD, &course, sizeof(course))) != 0) {
         if(course.fId == reqFaculty->fId && course.active == 1) {
@@ -253,6 +282,13 @@ void viewAllFacultyCourses(int clientConnectionFD, struct Faculty *reqFaculty) {
     return;
 }
 
+/*
+* @param clientConnectionFD An file descriptor for the client connection
+* @param *reqFaculty An pointer to the current logged in faculty's structure
+*                    So that its data can be accessed easily
+*
+* Removes course from the database and also removes its file from the system 
+*/
 void removeCourse(int clientConnectionFD, struct Faculty *reqFaculty) {
     char tempBuf[1000], writeBuf[1000], readBuf[1000];
     ssize_t readBytes, writeBytes;
@@ -260,11 +296,13 @@ void removeCourse(int clientConnectionFD, struct Faculty *reqFaculty) {
     bzero(tempBuf, sizeof(tempBuf));
     bzero(writeBuf, sizeof(writeBuf));
 
+    // Takes the course's id as input from client
     int cid;
     strcpy(writeBuf, REQ_COURSE_ID);
     if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
     cid = atoi(readBuf);
 
+    // Opens the database and try to retrieve the information from the database
     struct Course course;
     char databaseFile[50];
     strcpy(databaseFile, DATABASE_PATH);
@@ -289,6 +327,7 @@ void removeCourse(int clientConnectionFD, struct Faculty *reqFaculty) {
         if(course.cId == atoi(readBuf) && course.fId == reqFaculty->fId && course.active == 1) break;
     }
 
+    // If course is not found reports that to client
     bzero(writeBuf, sizeof(writeBuf));
     if(readBytes == 0) {    
         sprintf(writeBuf, UNABLE_FIND_COURSE, cid);
@@ -302,6 +341,7 @@ void removeCourse(int clientConnectionFD, struct Faculty *reqFaculty) {
         return;
     }
 
+    // If course is found then sets it to deactivated.
     course.active = 0;
     lseek(courseFD, -1*sizeof(course), SEEK_CUR);
     writeBytes = write(courseFD, &course, sizeof(course));
@@ -318,6 +358,7 @@ void removeCourse(int clientConnectionFD, struct Faculty *reqFaculty) {
         perror(ERROR_WRITING_RESPONSE);
     }
 
+    // Removes the course's file from the database
     bzero(writeBuf, sizeof(writeBuf));
     strcpy(writeBuf, DATABASE_PATH);
     strcat(writeBuf, course.databasePath);
@@ -327,6 +368,13 @@ void removeCourse(int clientConnectionFD, struct Faculty *reqFaculty) {
     return;
 }
 
+/*
+* @param clientConnectionFD An file descriptor for the client connection
+* @param *reqFaculty An pointer to the current logged in faculty's structure
+*                    So that its data can be accessed easily
+*
+* Update the existing course's details in the system 
+*/
 void updateCourseDetail(int clientConnectionFD, struct Faculty *reqFaculty) {
     char tempBuf[1000], writeBuf[1000], readBuf[1000];
     ssize_t readBytes, writeBytes;
@@ -334,11 +382,13 @@ void updateCourseDetail(int clientConnectionFD, struct Faculty *reqFaculty) {
     bzero(tempBuf, sizeof(tempBuf));
     bzero(writeBuf, sizeof(writeBuf));
 
+    // Requests the client for the course's id which they want to update
     int cid;
     strcpy(writeBuf, REQ_COURSE_ID);
     if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
     cid = atoi(readBuf);
 
+    // Opens the course database to retrieve its information from the system
     struct Course course;
     char databaseFile[50];
     strcpy(databaseFile, DATABASE_PATH);
@@ -359,6 +409,7 @@ void updateCourseDetail(int clientConnectionFD, struct Faculty *reqFaculty) {
         return;
     }
 
+    // Finds the course and checks if its a course offered by same faculty which is logged in or not
     while((readBytes = read(courseFD, &course, sizeof(course))) != 0) {
         if(course.cId == atoi(readBuf) && course.active == 1 && course.fId == reqFaculty->fId) break;
     }
@@ -425,11 +476,13 @@ void updateCourseDetail(int clientConnectionFD, struct Faculty *reqFaculty) {
             return;
         }
 
+        // Checks if the client is increasing or decreasing the seats
         if(newTotalSeats >= course.cTotalSeats) {
             int newlyAdded = newTotalSeats - course.cTotalSeats;
             course.cTotalSeats = newTotalSeats;
             course.cCurrentAvailableSeats += newlyAdded;
         } else {
+            // if client is decreasing the seats there might be a chance that we need to de-enroll the last few students from that course
             int newlyRemoved = course.cTotalSeats - newTotalSeats ;
             course.cTotalSeats = newTotalSeats;
             if(course.cCurrentAvailableSeats >= newlyRemoved) {
@@ -506,6 +559,11 @@ void updateCourseDetail(int clientConnectionFD, struct Faculty *reqFaculty) {
     return;
 }
 
+/*
+* @param clientConnectionFD An file descriptor for the client connection
+* 
+* Controlls all the faculty functionalities 
+*/
 void rootFacultyController(int clientConnectionFD) {
 
     char readBuf[1000], writeBuf[1000];

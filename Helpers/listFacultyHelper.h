@@ -14,10 +14,19 @@
 #include "./constantStrings.h"
 #include "../Models/faculty_struct.h"
 
+
+/*
+* @param clientConnectionFD An file descriptor for the client connection
+* @param *writeBuf A buffer pointer for writing data
+* @param writeSize Size of writeBuffer
+*
+* Creates list of all faculty present in system in format Login ID -> Name
+*/
 void listFaculty(int clientConnectionFD, char *writeBuf, int writeSize) {
     ssize_t readBytes, writeBytes;
     char tempBuf[1000];
 
+    // Opening database
     char databaseFile[50];
     strcpy(databaseFile, DATABASE_PATH);
     strcat(databaseFile, FACULTY_DATABASE);
@@ -37,6 +46,7 @@ void listFaculty(int clientConnectionFD, char *writeBuf, int writeSize) {
         return;
     }
 
+    // Reading database and creating the faculty list and storing the data into the writeBuffer
     struct Faculty faculty;
     strcpy(writeBuf, FACULTY_LIST_HEADING);
     strcat(writeBuf, "Login ID -> Name\n");

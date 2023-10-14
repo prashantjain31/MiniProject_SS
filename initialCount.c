@@ -7,6 +7,7 @@
 #include "./Models/track_struct.h"
 #include "./Helpers/constantStrings.h"
 
+// This program sets the basic track file to generate unique ids.
 int main() {
 
     char track_file[50];

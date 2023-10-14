@@ -17,7 +17,7 @@
 #include "./Controllers/FacultyController.h"
 #include "./Controllers/AdminController.h"
 
-
+// Handles the connection for a specific client
 void connectionHandler(int clientConnectionFD) {
     printf("Client has connected to the server!\n");
 
@@ -60,6 +60,7 @@ void connectionHandler(int clientConnectionFD) {
 }
 
 void main() {
+    // Creates the socket, binds it, set it to listen mode and then wait for connection acceptance
     int socketFD, socketBindStatus, socketListenStatus, clientConnectionFD, clientSize;
     struct sockaddr_in serverAddress, clientAddress;
 
@@ -94,10 +95,12 @@ void main() {
             perror("!! Error while connecting to client !!");
         } else {
             if(!fork()) {
+                // Child connection to handle the client
                 close(socketFD);
                 connectionHandler(clientConnectionFD);
                 _exit(0);
             } else {
+                // Parent closes the file descriptor and waits for new connection.
                 close(clientConnectionFD);
             }
         }

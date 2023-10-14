@@ -18,6 +18,18 @@
 #include "../Helpers/adminCredentials.h"
 #include "../Helpers/readWriteHelper.h"
 
+/*
+* @param clientConnectionFD An file descriptor for the client connection
+* @param loginType Tracks whether the user is admin, student, or faculty.
+* @param *reqStudent If loginType is student then finds the student and stores
+*                    its data in this object for further use.
+* @param *reqFaculty If loginType is faculty then finds the faculty and stores
+*                    its data in this object for further use.
+*
+* Handles the login functionality for every user and also stores it in their
+* respective objects for use in their respective controllers. Also set the 
+* users online if login is successful.
+*/
 bool loginHandler(int clientConnectionFD, int loginType, struct Student *reqStudent, struct Faculty *reqFaculty) {
     char readBuf[1000], writeBuf[1000], tempBuf[1000];
     ssize_t readBytes, writeBytes;
@@ -25,10 +37,12 @@ bool loginHandler(int clientConnectionFD, int loginType, struct Student *reqStud
     bzero(readBuf, sizeof(readBuf));
     bzero(writeBuf, sizeof(writeBuf));
 
+    // Welcome Messages
     if(loginType == 1) strcpy(writeBuf, WELCOME_STUDENT);
     else if(loginType == 2) strcpy(writeBuf, WELCOME_PROFESSOR);
     else strcpy(writeBuf, WELCOME_ADMIN);
 
+    // Take login id from client
     strcat(writeBuf, LOGIN_ID_MESSAGE);
 
     writeBytes = write(clientConnectionFD, writeBuf, strlen(writeBuf));
@@ -43,6 +57,8 @@ bool loginHandler(int clientConnectionFD, int loginType, struct Student *reqStud
         return false;
     }
     
+
+    // Take password from client
     bzero(tempBuf, sizeof(tempBuf));
     strcpy(tempBuf, readBuf);
 
@@ -61,7 +77,10 @@ bool loginHandler(int clientConnectionFD, int loginType, struct Student *reqStud
         return false;
     }
 
+    // Checks the loginType to handle the respective users
     if(loginType == 1) {
+        // Student Login
+        // Open database
         char databaseFile[50];
         strcpy(databaseFile, DATABASE_PATH);
         strcat(databaseFile, STUDENT_DATABASE);
@@ -74,7 +93,9 @@ bool loginHandler(int clientConnectionFD, int loginType, struct Student *reqStud
 
         struct Student student;
         while((readBytes = read(studentFD, &student, sizeof(student))) != 0) {
+            // Compares roll numbers to find the student
             if(strcmp(student.sRollNo, tempBuf) == 0) {
+                // If student is blocked cannot login
                 if(student.active == 0) {
                     bzero(writeBuf, sizeof(writeBuf));
                     strcpy(writeBuf, BLOCKED);
@@ -85,6 +106,7 @@ bool loginHandler(int clientConnectionFD, int loginType, struct Student *reqStud
                     }
                     return false;
                 }
+                // if student is online cannot login again
                 if(student.online == 1) {
                     bzero(writeBuf, sizeof(writeBuf));
                     strcpy(writeBuf, ALREADY_LOGGED_IN);
@@ -95,6 +117,7 @@ bool loginHandler(int clientConnectionFD, int loginType, struct Student *reqStud
                     }
                     return false;
                 }
+                // Checks if password is correct if yes then set that student online and writes it data in respective object.
                 if(strcmp(student.sPassword, readBuf) == 0) {
                     student.online = 1;
                     if(strcmp(student.sPassword, DEFAULT_PASS) == 0) {
@@ -131,6 +154,8 @@ bool loginHandler(int clientConnectionFD, int loginType, struct Student *reqStud
         close(studentFD);
         return false;
     } else if(loginType == 2) {
+        // Faculty login
+        // Open database
         char databaseFile[50];
         strcpy(databaseFile, DATABASE_PATH);
         strcat(databaseFile, FACULTY_DATABASE);
@@ -143,7 +168,9 @@ bool loginHandler(int clientConnectionFD, int loginType, struct Student *reqStud
 
         struct Faculty faculty;
         while((readBytes = read(facultyFD, &faculty, sizeof(faculty))) != 0) {
+            // Compares login id to find the faculty
             if(strcmp(faculty.fLogin, tempBuf) == 0) {
+                // If faculty is blocked cannot login
                 if(faculty.active == 0) {
                     bzero(writeBuf, sizeof(writeBuf));
                     strcpy(writeBuf, BLOCKED);
@@ -154,6 +181,8 @@ bool loginHandler(int clientConnectionFD, int loginType, struct Student *reqStud
                     }
                     return false;
                 }
+
+                // If faculty is online cannot login
                 if(faculty.online == 1) {
                     bzero(writeBuf, sizeof(writeBuf));
                     strcpy(writeBuf, ALREADY_LOGGED_IN);
@@ -164,6 +193,8 @@ bool loginHandler(int clientConnectionFD, int loginType, struct Student *reqStud
                     }
                     return false;
                 }
+
+                // Checks if password is correct if yes then set that faculty online and writes it data in respective object.
                 if(strcmp(faculty.fPassword, readBuf) == 0) {
                     faculty.online = 1;
                     if(strcmp(faculty.fPassword, DEFAULT_PASS) == 0) {
@@ -200,13 +231,14 @@ bool loginHandler(int clientConnectionFD, int loginType, struct Student *reqStud
         close(facultyFD);
         return false;
     } else {
+        // Admin login
         if(strcmp(tempBuf, SUPERID) == 0 && strcmp(readBuf, SUPERPASSWORD) == 0) {
             return true;
         }
         else return false;
     }
 
-    return true;
+    return false;
 }
 
 #endif

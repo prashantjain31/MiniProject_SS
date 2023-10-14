@@ -11,6 +11,14 @@
 #include <stdlib.h>
 #include <errno.h>
 
+/*
+* @param clientConnectionFD An file descriptor for the client connection
+* @param *writeBuf Used for the output and display it to client
+* @param writeSize writeBuffer size
+* @param *readBuf Used for the input and read it from client
+*
+* Handles the basic reading and writing functionality for whole program.
+*/
 bool readwrite(int clientConnectionFD, char *writeBuf, int writeSize, char *readBuf, int readSize) {
     ssize_t readBytes, writeBytes;
 

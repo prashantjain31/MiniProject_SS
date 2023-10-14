@@ -14,10 +14,19 @@
 #include "./constantStrings.h"
 #include "../Models/student_struct.h"
 
+
+/*
+* @param clientConnectionFD An file descriptor for the client connection
+* @param *writeBuf A buffer pointer for writing data
+* @param writeSize Size of writeBuffer
+*
+* Creates list of all students present in system in format Roll Number -> Name
+*/
 void listStudents(int clientConnectionFD, char *writeBuf, int writeSize) {
     ssize_t readBytes, writeBytes;
     char tempBuf[1000];
 
+    // Opening database
     char databaseFile[50];
     strcpy(databaseFile, DATABASE_PATH);
     strcat(databaseFile, STUDENT_DATABASE);
@@ -37,6 +46,8 @@ void listStudents(int clientConnectionFD, char *writeBuf, int writeSize) {
         return;
     }
 
+
+    // Reading database and creating the student list and storing the data into the writeBuffer
     struct Student student;
     strcpy(writeBuf, STUDENT_LIST_HEADING);
     strcat(writeBuf, "\nRoll Number -> Name\n");

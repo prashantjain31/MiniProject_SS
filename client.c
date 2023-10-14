@@ -9,6 +9,7 @@
 
 #include "./Helpers/constantStrings.h"
 
+// Handles all repetitive writing and reading until the disconnection.
 void connectionHandler(int socketFD) {
     char readBuf[1000];
     char writeBuf[1000];
@@ -51,6 +52,7 @@ void connectionHandler(int socketFD) {
     close(socketFD);
 }
 
+// Creates the socket and connects to the server
 void main() {
     int socketFD, connectionStatus;
     struct sockaddr_in serverAddress;

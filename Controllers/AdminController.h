@@ -20,6 +20,11 @@
 #include "../Helpers/listStudentsHelper.h"
 #include "../Helpers/listFacultyHelper.h"
 
+/*
+* @param clientConnectionFD An file descriptor for the client connection
+*
+* Adds a new student in the database
+*/
 void addStudent(int clientConnectionFD) {
 
     char readBuf[1000], writeBuf[1000];
@@ -28,6 +33,7 @@ void addStudent(int clientConnectionFD) {
     bzero(readBuf, sizeof(readBuf));
     bzero(writeBuf, sizeof(writeBuf));
 
+    // Takes the new students details as input and populates the structure. ids are generated automatically
     struct Student newStudent;
 
     strcpy(writeBuf, "Enter the student name: ");
@@ -49,6 +55,7 @@ void addStudent(int clientConnectionFD) {
     if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
     strcpy(newStudent.sRollNo, readBuf);
 
+    // Track file to generate the ids automatically
     char trackFile[50];
     strcpy(trackFile, DATABASE_PATH);
     strcat(trackFile, TRACK_FILE);
@@ -85,6 +92,7 @@ void addStudent(int clientConnectionFD) {
 
     strcpy(newStudent.sPassword, DEFAULT_PASS);
 
+    // Opens the database and stores the data
     char databaseFile[50];
     strcpy(databaseFile, DATABASE_PATH);
     strcat(databaseFile, STUDENT_DATABASE);
@@ -132,6 +140,11 @@ void addStudent(int clientConnectionFD) {
     return;
 }
 
+/*
+* @param clientConnectionFD An file descriptor for the client connection
+*
+* View student details in the database
+*/
 void viewStudent(int clientConnectionFD) {
     char readBuf[1000], writeBuf[1000];
     ssize_t readBytes, writeBytes;
@@ -139,13 +152,16 @@ void viewStudent(int clientConnectionFD) {
     bzero(readBuf, sizeof(readBuf));
     bzero(writeBuf, sizeof(writeBuf));
 
+    // Lists all studnets so that admin can choose
     listStudents(clientConnectionFD, writeBuf, sizeof(writeBuf));
 
+    // Request the id from client
     strcat(writeBuf, REQ_STUDENT_ROLLNO);
     if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
     char rollnumber[20];
     strcpy(rollnumber, readBuf);
     
+    // Opens the database and retrieves the student details andp rints it
     char databaseFile[50];
     strcpy(databaseFile, DATABASE_PATH);
     strcat(databaseFile, STUDENT_DATABASE);
@@ -199,6 +215,11 @@ void viewStudent(int clientConnectionFD) {
     return;
 }
 
+/*
+* @param clientConnectionFD An file descriptor for the client connection
+*
+* activate student account 
+*/
 void activateStudent(int clientConnectionFD) {
     char readBuf[1000], writeBuf[1000];
     ssize_t readBytes, writeBytes;
@@ -206,6 +227,7 @@ void activateStudent(int clientConnectionFD) {
     bzero(readBuf, sizeof(readBuf));
     bzero(writeBuf, sizeof(writeBuf));
 
+    // Lists all studnets so that admin can choose
     listStudents(clientConnectionFD, writeBuf, sizeof(writeBuf));
 
     strcat(writeBuf, REQ_STUDENT_ROLLNO);
@@ -217,6 +239,7 @@ void activateStudent(int clientConnectionFD) {
     strcpy(databaseFile, DATABASE_PATH);
     strcat(databaseFile, STUDENT_DATABASE);
 
+    // Opens the student database and set the student active status to 1
     int studentFD = open(databaseFile, O_CREAT | O_RDWR, 0777);
     if(studentFD == -1) {
         perror(ERROR_WRITING_STUDENT_DB);
@@ -270,6 +293,11 @@ void activateStudent(int clientConnectionFD) {
     return;
 }
 
+/*
+* @param clientConnectionFD An file descriptor for the client connection
+*
+* block student account 
+*/
 void blockStudent(int clientConnectionFD) {
     char readBuf[1000], writeBuf[1000];
     ssize_t readBytes, writeBytes;
@@ -277,6 +305,7 @@ void blockStudent(int clientConnectionFD) {
     bzero(readBuf, sizeof(readBuf));
     bzero(writeBuf, sizeof(writeBuf));
 
+    // Lists all studnets so that admin can choose
     listStudents(clientConnectionFD, writeBuf, sizeof(writeBuf));
 
     strcat(writeBuf, REQ_STUDENT_ROLLNO);
@@ -288,6 +317,7 @@ void blockStudent(int clientConnectionFD) {
     strcpy(databaseFile, DATABASE_PATH);
     strcat(databaseFile, STUDENT_DATABASE);
 
+    // Opens the student database and set the student active status to 0
     int studentFD = open(databaseFile, O_CREAT | O_RDWR, 0777);
     if(studentFD == -1) {
         perror(ERROR_OPEN_STUDENT);
@@ -390,6 +420,11 @@ void blockStudent(int clientConnectionFD) {
     return;
 }
 
+/*
+* @param clientConnectionFD An file descriptor for the client connection
+*
+* Modify a student's details 
+*/
 void modifyStudent(int clientConnectionFD) {
     char readBuf[1000], writeBuf[1000];
     ssize_t readBytes, writeBytes;
@@ -397,6 +432,7 @@ void modifyStudent(int clientConnectionFD) {
     bzero(readBuf, sizeof(readBuf));
     bzero(writeBuf, sizeof(writeBuf));
 
+    // List all the available students in system
     listStudents(clientConnectionFD, writeBuf, sizeof(writeBuf));
 
     strcat(writeBuf, REQ_STUDENT_ROLLNO);
@@ -404,6 +440,7 @@ void modifyStudent(int clientConnectionFD) {
     char rollnumber[20];
     strcpy(rollnumber, readBuf);
     
+    // Open the database file to retireve the students existing details
     char databaseFile[50];
     strcpy(databaseFile, DATABASE_PATH);
     strcat(databaseFile, STUDENT_DATABASE);
@@ -441,6 +478,7 @@ void modifyStudent(int clientConnectionFD) {
         return;
     }
 
+    // If student is online cannot modify its details
     if(student.online == 1) {
         bzero(writeBuf, sizeof(writeBuf));
         strcpy(writeBuf, CANNOT_CHANGE);
@@ -517,6 +555,11 @@ void modifyStudent(int clientConnectionFD) {
     return;
 }
 
+/*
+* @param clientConnectionFD An file descriptor for the client connection
+*
+* add's a new faculty into the system 
+*/
 void addFaculty(int clientConnectionFD) {
 
     char readBuf[1000], writeBuf[1000];
@@ -525,6 +568,7 @@ void addFaculty(int clientConnectionFD) {
     bzero(readBuf, sizeof(readBuf));
     bzero(writeBuf, sizeof(writeBuf));
 
+    // Take all the faculty details from the client
     struct Faculty newFaculty;
 
     strcpy(writeBuf, "Enter the faculty name: ");
@@ -541,6 +585,7 @@ void addFaculty(int clientConnectionFD) {
     if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
     strcpy(newFaculty.fDepartment, readBuf);
 
+    // Open the track database file to generate the unique id for faculty
     char trackFile[50];
     strcpy(trackFile, DATABASE_PATH);
     strcat(trackFile, TRACK_FILE);
@@ -579,6 +624,7 @@ void addFaculty(int clientConnectionFD) {
 
     strcpy(newFaculty.fPassword, DEFAULT_PASS);
 
+    // Open the faculty database file to store the information into the system
     char databaseFile[50];
     strcpy(databaseFile, DATABASE_PATH);
     strcat(databaseFile, FACULTY_DATABASE);
@@ -618,6 +664,11 @@ void addFaculty(int clientConnectionFD) {
     return;
 }
 
+/*
+* @param clientConnectionFD An file descriptor for the client connection
+*
+* View the faculty's details 
+*/
 void viewFaculty(int clientConnectionFD) {
     char readBuf[1000], writeBuf[1000];
     ssize_t readBytes, writeBytes;
@@ -625,6 +676,7 @@ void viewFaculty(int clientConnectionFD) {
     bzero(readBuf, sizeof(readBuf));
     bzero(writeBuf, sizeof(writeBuf));
 
+    // Lists all the faculty in system so that admin can choose
     listFaculty(clientConnectionFD, writeBuf, sizeof(writeBuf));
 
     strcat(writeBuf, REQ_FACULTY_LOGINID);
@@ -632,6 +684,7 @@ void viewFaculty(int clientConnectionFD) {
     char login[20];
     strcpy(login, readBuf);
     
+    // Opens the file and finds the faculty details
     char databaseFile[50];
     strcpy(databaseFile, DATABASE_PATH);
     strcat(databaseFile, FACULTY_DATABASE);
@@ -675,6 +728,11 @@ void viewFaculty(int clientConnectionFD) {
     return;
 }
 
+/*
+* @param clientConnectionFD An file descriptor for the client connection
+*
+* Modify the faculty's details 
+*/
 void modifyFaculty(int clientConnectionFD) {
     char readBuf[1000], writeBuf[1000];
     ssize_t readBytes, writeBytes;
@@ -682,6 +740,7 @@ void modifyFaculty(int clientConnectionFD) {
     bzero(readBuf, sizeof(readBuf));
     bzero(writeBuf, sizeof(writeBuf));
 
+    // Lists all the faculty in system so that admin can choose
     listFaculty(clientConnectionFD, writeBuf, sizeof(writeBuf));
 
     strcat(writeBuf, REQ_FACULTY_LOGINID);
@@ -689,6 +748,7 @@ void modifyFaculty(int clientConnectionFD) {
     char login[20];
     strcpy(login, readBuf);
     
+    // Opens database to retireve the existing faculty details in the system
     char databaseFile[50];
     strcpy(databaseFile, DATABASE_PATH);
     strcat(databaseFile, FACULTY_DATABASE);
@@ -724,6 +784,7 @@ void modifyFaculty(int clientConnectionFD) {
         return;
     }
 
+    // If faculty is online cannot modify its data
     if(faculty.online == 1) {
         bzero(writeBuf, sizeof(writeBuf));
         strcpy(writeBuf, CANNOT_CHANGE);
@@ -773,6 +834,7 @@ void modifyFaculty(int clientConnectionFD) {
         strcat(faculty.fLogin, readBuf);
     }
 
+    // Store the updated faculty details back into the system
     lseek(facultyFD, -1*sizeof(faculty), SEEK_CUR);
     writeBytes = write(facultyFD, &faculty, sizeof(faculty));
     if(writeBytes == -1) {
@@ -792,6 +854,11 @@ void modifyFaculty(int clientConnectionFD) {
     return;
 }
 
+/*
+* @param clientConnectionFD An file descriptor for the client connection
+*
+* Controlls all the admin functionalities 
+*/
 void rootAdminController(int clientConnectionFD) {
     char readBuf[1000], writeBuf[1000];
     ssize_t readBytes, writeBytes;
@@ -799,7 +866,7 @@ void rootAdminController(int clientConnectionFD) {
     bzero(readBuf, sizeof(readBuf));
     bzero(writeBuf, sizeof(writeBuf));
 
-    char aid[20];
+    // Attempts to login into the system otherwise returns
     if(loginHandler(clientConnectionFD, 3, NULL, NULL)) {
         strcpy(writeBuf, SUCCESS_LOGIN);
         int adminChoice;

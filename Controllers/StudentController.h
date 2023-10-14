@@ -18,10 +18,18 @@
 #include "../Helpers/loginHelper.h"
 #include "../Helpers/logoutHelper.h"
 
+/*
+* @param clientConnectionFD An file descriptor for the client connection
+* @param *reqStudent An pointer to the current logged in student's structure
+*                    So that its data can be accessed easily
+*
+* Controlls the change password functionality for the student 
+*/
 bool changeStudentPassword(int clientConnectionFD, struct Student *reqStudent) {
     char readBuf[1000], writeBuf[1000];
     ssize_t readBytes, writeBytes;
 
+    // Opens student database to store the new changed password
     char databaseFile[50];
     strcpy(databaseFile, DATABASE_PATH);
     strcat(databaseFile, STUDENT_DATABASE);
@@ -74,6 +82,13 @@ bool changeStudentPassword(int clientConnectionFD, struct Student *reqStudent) {
     return false;
 }
 
+/*
+* @param clientConnectionFD An file descriptor for the client connection
+* @param *reqStudent An pointer to the current logged in student's structure
+*                    So that its data can be accessed easily
+*
+* Enroll the studnet into a course. 
+*/
 void enrollCourse(int clientConnectionFD, struct Student *reqStudent) {
     char tempBuf[1000], writeBuf[1000], readBuf[1000];
     ssize_t readBytes, writeBytes;
@@ -81,11 +96,13 @@ void enrollCourse(int clientConnectionFD, struct Student *reqStudent) {
     bzero(tempBuf, sizeof(tempBuf));
     bzero(writeBuf, sizeof(writeBuf));
 
+    // Request client for the course id 
     int cid;
     strcpy(writeBuf, REQ_COURSE_ID);
     if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
     cid = atoi(readBuf);
 
+    // Open the course database file to know whether that course exists or not
     struct Course course;
     char databaseFile[50];
     strcpy(databaseFile, DATABASE_PATH);
@@ -123,6 +140,7 @@ void enrollCourse(int clientConnectionFD, struct Student *reqStudent) {
         return;
     }
 
+    // If available seats in course is zero cannot enroll
     if(course.cCurrentAvailableSeats <= 0) {
         bzero(writeBuf, sizeof(writeBuf));
         strcpy(writeBuf, NO_SEATS_AVAILABLE);
@@ -136,6 +154,7 @@ void enrollCourse(int clientConnectionFD, struct Student *reqStudent) {
         return;
     }
 
+    // If seats are available then opens the course's file to enroll the student into it
     char courseDatabaseFile[50];
     strcpy(courseDatabaseFile, DATABASE_PATH);
     strcat(courseDatabaseFile, course.databasePath);
@@ -161,6 +180,7 @@ void enrollCourse(int clientConnectionFD, struct Student *reqStudent) {
     }
 
     bzero(writeBuf, sizeof(writeBuf));
+    // Enrolls the student into the course if not enrolled previously
     if(readBytes == 0) {    
 
         struct Enroll newEnroll;
@@ -210,6 +230,13 @@ void enrollCourse(int clientConnectionFD, struct Student *reqStudent) {
     close(courseDbFD);
 }
 
+/*
+* @param clientConnectionFD An file descriptor for the client connection
+* @param *reqStudent An pointer to the current logged in student's structure
+*                    So that its data can be accessed easily
+*
+* View All available courses into system 
+*/
 void viewAllCourses(int clientConnectionFD, struct Student *reqStudent) {
     char tempBuf[1000], writeBuf[1000];
     ssize_t readBytes, writeBytes;
@@ -217,6 +244,7 @@ void viewAllCourses(int clientConnectionFD, struct Student *reqStudent) {
     bzero(tempBuf, sizeof(tempBuf));
     bzero(writeBuf, sizeof(writeBuf));
 
+    // Opens the course database file if course is active then shows that to client
     struct Course course;
     char databaseFile[50];
     strcpy(databaseFile, DATABASE_PATH);
@@ -256,6 +284,13 @@ void viewAllCourses(int clientConnectionFD, struct Student *reqStudent) {
     return;
 }
 
+/*
+* @param clientConnectionFD An file descriptor for the client connection
+* @param *reqStudent An pointer to the current logged in student's structure
+*                    So that its data can be accessed easily
+*
+* Allows student to drop a course 
+*/
 void dropCourse(int clientConnectionFD, struct Student *reqStudent) {
     char tempBuf[1000], writeBuf[1000], readBuf[1000];
     ssize_t readBytes, writeBytes;
@@ -263,11 +298,13 @@ void dropCourse(int clientConnectionFD, struct Student *reqStudent) {
     bzero(tempBuf, sizeof(tempBuf));
     bzero(writeBuf, sizeof(writeBuf));
 
+    // Request the student the course id to de-enroll
     int cid;
     strcpy(writeBuf, REQ_COURSE_ID);
     if(!readwrite(clientConnectionFD, writeBuf, sizeof(writeBuf), readBuf, sizeof(readBuf))) return;
     cid = atoi(readBuf);
 
+    // Open the course database file to check if that course exists
     struct Course course;
     char databaseFile[50];
     strcpy(databaseFile, DATABASE_PATH);
@@ -305,6 +342,7 @@ void dropCourse(int clientConnectionFD, struct Student *reqStudent) {
         return;
     }
 
+    // If course exists then searches the studnet in course to de-enroll
     char courseDatabaseFile[50];
     strcpy(courseDatabaseFile, DATABASE_PATH);
     strcat(courseDatabaseFile, course.databasePath);
@@ -378,6 +416,13 @@ void dropCourse(int clientConnectionFD, struct Student *reqStudent) {
     close(courseDbFD);
 }
 
+/*
+* @param clientConnectionFD An file descriptor for the client connection
+* @param *reqStudent An pointer to the current logged in student's structure
+*                    So that its data can be accessed easily
+*
+* View details of course in which the student is enrolled 
+*/
 void viewEnrolledCourseDetail(int clientConnectionFD, struct Student *reqStudent) {
     char tempBuf[1000], writeBuf[1000], readBuf[1000];
     ssize_t readBytes, writeBytes;
@@ -480,6 +525,13 @@ void viewEnrolledCourseDetail(int clientConnectionFD, struct Student *reqStudent
     close(courseDbFD);
 }
 
+/*
+* @param clientConnectionFD An file descriptor for the client connection
+* @param *reqStudent An pointer to the current logged in student's structure
+*                    So that its data can be accessed easily
+*
+* Shows all courses in which the student is enrolled 
+*/
 void viewAllEnrolledCourses(int clientConnectionFD, struct Student *reqStudent) {
     char tempBuf[1000], writeBuf[1000], readBuf[1000];
     ssize_t readBytes, writeBytes;
@@ -542,6 +594,11 @@ void viewAllEnrolledCourses(int clientConnectionFD, struct Student *reqStudent) 
     return;
 }
 
+/*
+* @param clientConnectionFD An file descriptor for the client connection
+* 
+* Handles all the student functionalities 
+*/
 void rootStudentController(int clientConnectionFD) {
     
     char readBuf[1000], writeBuf[1000];
