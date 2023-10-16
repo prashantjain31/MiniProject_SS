@@ -16,6 +16,8 @@
 #include "../Models/course_struct.h"
 #include "../Helpers/constantStrings.h"
 #include "../Helpers/adminCredentials.h"
+#include "../Helpers/writeLock.h"
+#include "../Helpers/releaseLock.h"
 
 /*
 * @param loginType Tracks whether the user is admin, student, or faculty.
@@ -45,6 +47,8 @@ bool logoutHandler(int loginType, struct Student *reqStudent, struct Faculty *re
             return false;
         }
 
+        acquire_write_lock(studentFD);
+
         struct Student student;
         while((readBytes = read(studentFD, &student, sizeof(student))) != 0) {
             // Compares the student id in database to find the student
@@ -54,14 +58,16 @@ bool logoutHandler(int loginType, struct Student *reqStudent, struct Faculty *re
                 writeBytes = write(studentFD, &student, sizeof(student));
                 if(writeBytes == -1) {
                     perror(ERROR_WRITING_STUDENT_DB);
+                    release_lock(studentFD);
                     close(studentFD);
                     return false;
                 }
-
+                release_lock(studentFD);
                 close(studentFD);
                 return true;
             }
         }
+        release_lock(studentFD);
         close(studentFD);
         return false;
     } else if(loginType == 2) {
@@ -76,7 +82,7 @@ bool logoutHandler(int loginType, struct Student *reqStudent, struct Faculty *re
             perror(ERROR_OPEN_FACULTY);
             return false;
         }
-
+        acquire_write_lock(facultyFD);
         struct Faculty faculty;
         while((readBytes = read(facultyFD, &faculty, sizeof(faculty))) != 0) {
             // Compares the faculty id in database to find the faculty
@@ -86,14 +92,16 @@ bool logoutHandler(int loginType, struct Student *reqStudent, struct Faculty *re
                 writeBytes = write(facultyFD, &faculty, sizeof(faculty));
                 if(writeBytes == -1) {
                     perror(ERROR_WRITING_FACULTY_DB);
+                    release_lock(facultyFD);
                     close(facultyFD);
                     return false;
                 }
-
+                release_lock(facultyFD);
                 close(facultyFD);
                 return true;
             }
         }
+        release_lock(facultyFD);
         close(facultyFD);
         return false;
     } 

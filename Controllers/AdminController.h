@@ -19,6 +19,9 @@
 #include "../Helpers/readWriteHelper.h"
 #include "../Helpers/listStudentsHelper.h"
 #include "../Helpers/listFacultyHelper.h"
+#include "../Helpers/readLock.h"
+#include "../Helpers/writeLock.h"
+#include "../Helpers/releaseLock.h"
 
 /*
 * @param clientConnectionFD An file descriptor for the client connection
@@ -73,6 +76,7 @@ void addStudent(int clientConnectionFD) {
         }
         return;
     }
+    acquire_write_lock(trackFD);
 
     struct Track track;
     readBytes = read(trackFD, &track, sizeof(track));
@@ -107,10 +111,13 @@ void addStudent(int clientConnectionFD) {
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
             perror(ERROR_REPORTING_LOGOUT_MESSAGE);
+            release_lock(trackFD);
             return;
         }
+        release_lock(trackFD);
         return;
     }
+    acquire_write_lock(studentFD);
 
     writeBytes = write(studentFD, &newStudent, sizeof(newStudent));
     if(writeBytes == -1) {
@@ -121,8 +128,9 @@ void addStudent(int clientConnectionFD) {
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
             perror(ERROR_WRITING_TO_CLIENT);
-            return;
         }
+        release_lock(studentFD);
+        release_lock(trackFD);
         close(trackFD);
         close(studentFD);
         return;
@@ -134,7 +142,8 @@ void addStudent(int clientConnectionFD) {
     if(writeBytes == -1) {
         perror(ERROR_WRITING_RESPONSE);
     }
-
+    release_lock(studentFD);
+    release_lock(trackFD);
     close(trackFD);
     close(studentFD);
     return;
@@ -165,7 +174,7 @@ void viewStudent(int clientConnectionFD) {
     char databaseFile[50];
     strcpy(databaseFile, DATABASE_PATH);
     strcat(databaseFile, STUDENT_DATABASE);
-
+    
     int studentFD = open(databaseFile, O_CREAT | O_RDONLY, 0777);
     if(studentFD == -1) {
         perror(ERROR_OPEN_STUDENT);
@@ -180,6 +189,7 @@ void viewStudent(int clientConnectionFD) {
         }
         return;
     }
+    acquire_read_lock(studentFD);
 
     struct Student student;
     while((readBytes = read(studentFD, &student, sizeof(student))) != 0) {
@@ -204,13 +214,11 @@ void viewStudent(int clientConnectionFD) {
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
             perror(ERROR_WRITING_TO_CLIENT);
+            release_lock(studentFD);
             return;
         }
-
-        close(studentFD);
-        return;
     }
-
+    release_lock(studentFD);
     close(studentFD);
     return;
 }
@@ -254,6 +262,7 @@ void activateStudent(int clientConnectionFD) {
         }
         return;
     }
+    acquire_write_lock(studentFD);
 
     struct Student student;
     while((readBytes = read(studentFD, &student, sizeof(student))) != 0) {
@@ -266,9 +275,8 @@ void activateStudent(int clientConnectionFD) {
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
             perror(ERROR_WRITING_RESPONSE);
-            close(studentFD);
-            return;
         }
+        release_lock(studentFD);
         close(studentFD);
         return;
     }
@@ -278,6 +286,7 @@ void activateStudent(int clientConnectionFD) {
     writeBytes = write(studentFD, &student, sizeof(student));
     if(writeBytes == -1) {
         perror(ERROR_WRITING_STUDENT_DB);
+        release_lock(studentFD);
         close(studentFD);
         return;
     }
@@ -288,7 +297,7 @@ void activateStudent(int clientConnectionFD) {
     if(writeBytes == -1) {
         perror(ERROR_WRITING_RESPONSE);
     }
-
+    release_lock(studentFD);
     close(studentFD);
     return;
 }
@@ -332,6 +341,7 @@ void blockStudent(int clientConnectionFD) {
         }
         return;
     }
+    acquire_write_lock(studentFD);
 
     struct Student student;
     while((readBytes = read(studentFD, &student, sizeof(student))) != 0) {
@@ -344,9 +354,8 @@ void blockStudent(int clientConnectionFD) {
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
             perror(ERROR_WRITING_RESPONSE);
-            close(studentFD);
-            return;
         }
+        release_lock(studentFD);
         close(studentFD);
         return;
     }
@@ -356,9 +365,11 @@ void blockStudent(int clientConnectionFD) {
     writeBytes = write(studentFD, &student, sizeof(student));
     if(writeBytes == -1) {
         perror(ERROR_WRITING_STUDENT_DB);
+        release_lock(studentFD);
         close(studentFD);
         return;
     }
+    release_lock(studentFD);
 
     char courseFile[50];
     strcpy(courseFile, DATABASE_PATH);
@@ -377,6 +388,8 @@ void blockStudent(int clientConnectionFD) {
         }
         return;
     }
+    acquire_write_lock(courseFD);
+
     struct Course course;
     while((readBytes = read(courseFD, &course, sizeof(course))) != 0) {
         if(course.active == 0) continue;
@@ -389,6 +402,7 @@ void blockStudent(int clientConnectionFD) {
             perror(ERROR_OPEN_COURSE);
             continue;
         }
+        acquire_write_lock(courseDbFD);
 
         struct Enroll enroll;
         while((readBytes = read(courseDbFD, &enroll, sizeof(enroll))) != 0) {
@@ -404,9 +418,10 @@ void blockStudent(int clientConnectionFD) {
             lseek(courseFD, -1*sizeof(course), SEEK_CUR);
             write(courseFD, &course, sizeof(course));
         }
+        release_lock(courseDbFD);
         close(courseDbFD);
     }
-
+    release_lock(courseFD);
     close(courseFD);
 
     bzero(writeBuf, sizeof(writeBuf));
@@ -459,6 +474,7 @@ void modifyStudent(int clientConnectionFD) {
         }
         return;
     }
+    acquire_write_lock(studentFD);
 
     struct Student student;
     while((readBytes = read(studentFD, &student, sizeof(student))) != 0) {
@@ -471,9 +487,8 @@ void modifyStudent(int clientConnectionFD) {
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
             perror(ERROR_WRITING_RESPONSE);
-            close(studentFD);
-            return;
         }
+        release_lock(studentFD);
         close(studentFD);
         return;
     }
@@ -485,9 +500,8 @@ void modifyStudent(int clientConnectionFD) {
         write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
             perror(ERROR_WRITING_TO_CLIENT);
-            close(studentFD);
-            return;
         }
+        release_lock(studentFD);
         close(studentFD);
         return;
     }
@@ -540,9 +554,11 @@ void modifyStudent(int clientConnectionFD) {
     writeBytes = write(studentFD, &student, sizeof(student));
     if(writeBytes == -1) {
         perror(ERROR_WRITING_STUDENT_DB);
+        release_lock(studentFD);
         close(studentFD);
         return;
     }
+    release_lock(studentFD);
 
     bzero(writeBuf, sizeof(writeBuf));
     strcpy(writeBuf, "\n# Successfully updated the student details\n");
@@ -603,6 +619,7 @@ void addFaculty(int clientConnectionFD) {
         }
         return;
     }
+    acquire_write_lock(trackFD);
 
     struct Track track;
     lseek(trackFD, 1*sizeof(track), SEEK_SET);
@@ -639,14 +656,18 @@ void addFaculty(int clientConnectionFD) {
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
             perror(ERROR_REPORTING_LOGOUT_MESSAGE);
-            return;
         }
+        release_lock(trackFD);
+        close(trackFD);
         return;
     }
+    acquire_write_lock(facultyFD);
 
     writeBytes = write(facultyFD, &newFaculty, sizeof(newFaculty));
     if(writeBytes == -1) {
         perror(ERROR_WRITING_FACULTY_DB);
+        release_lock(facultyFD);
+        release_lock(trackFD);
         close(trackFD);
         close(facultyFD);
         return;
@@ -658,7 +679,8 @@ void addFaculty(int clientConnectionFD) {
     if(writeBytes == -1) {
         perror(ERROR_WRITING_RESPONSE);
     }
-
+    release_lock(facultyFD);
+    release_lock(trackFD);
     close(trackFD);
     close(facultyFD);
     return;
@@ -703,6 +725,7 @@ void viewFaculty(int clientConnectionFD) {
         }
         return;
     }
+    acquire_read_lock(facultyFD);
 
     struct Faculty faculty;
     while((readBytes = read(facultyFD, &faculty, sizeof(faculty))) != 0) {
@@ -720,10 +743,8 @@ void viewFaculty(int clientConnectionFD) {
     writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
     if(writeBytes == -1) {
         perror(ERROR_WRITING_RESPONSE);
-        close(facultyFD);
-        return;
     }
-
+    release_lock(facultyFD);
     close(facultyFD);
     return;
 }
@@ -767,6 +788,7 @@ void modifyFaculty(int clientConnectionFD) {
         }
         return;
     }
+    acquire_write_lock(facultyFD);
 
     struct Faculty faculty;
     while((readBytes = read(facultyFD, &faculty, sizeof(faculty))) != 0) {
@@ -780,6 +802,7 @@ void modifyFaculty(int clientConnectionFD) {
         if(writeBytes == -1) {
             perror(ERROR_WRITING_RESPONSE);
         }
+        release_lock(facultyFD);
         close(facultyFD);
         return;
     }
@@ -791,9 +814,8 @@ void modifyFaculty(int clientConnectionFD) {
         write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
             perror(ERROR_WRITING_TO_CLIENT);
-            close(facultyFD);
-            return;
         }
+        release_lock(facultyFD);
         close(facultyFD);
         return;
     }
@@ -839,10 +861,12 @@ void modifyFaculty(int clientConnectionFD) {
     writeBytes = write(facultyFD, &faculty, sizeof(faculty));
     if(writeBytes == -1) {
         perror(ERROR_WRITING_FACULTY_DB);
+        release_lock(facultyFD);
         close(facultyFD);
         return;
     }
-
+    release_lock(facultyFD);
+    
     bzero(writeBuf, sizeof(writeBuf));
     strcpy(writeBuf, "\n# Successfully updated the faculty details\n");
     writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));

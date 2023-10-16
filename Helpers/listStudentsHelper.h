@@ -13,7 +13,8 @@
 
 #include "./constantStrings.h"
 #include "../Models/student_struct.h"
-
+#include "./readLock.h"
+#include "./releaseLock.h"
 
 /*
 * @param clientConnectionFD An file descriptor for the client connection
@@ -45,7 +46,7 @@ void listStudents(int clientConnectionFD, char *writeBuf, int writeSize) {
         }
         return;
     }
-
+    acquire_read_lock(studentFD);
 
     // Reading database and creating the student list and storing the data into the writeBuffer
     struct Student student;
@@ -56,7 +57,8 @@ void listStudents(int clientConnectionFD, char *writeBuf, int writeSize) {
         sprintf(tempBuf, "%s -> %s\n", student.sRollNo, student.sName);
         strcat(writeBuf, tempBuf);
     }
-
+    release_lock(studentFD);
+    close(studentFD);
     return;
 }
 

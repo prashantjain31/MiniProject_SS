@@ -18,6 +18,9 @@
 #include "../Helpers/loginHelper.h"
 #include "../Helpers/logoutHelper.h"
 #include "../Helpers/readWriteHelper.h"
+#include "../Helpers/readLock.h"
+#include "../Helpers/writeLock.h"
+#include "../Helpers/releaseLock.h"
 
 /*
 * @param clientConnectionFD An file descriptor for the client connection
@@ -40,6 +43,7 @@ bool changeFacultyPassword(int clientConnectionFD, struct Faculty *reqFaculty) {
         perror(ERROR_OPEN_FACULTY);
         return false;
     }
+    acquire_write_lock(facultyFD);
 
     struct Faculty faculty;
     while((readBytes = read(facultyFD, &faculty, sizeof(faculty))) != 0) {
@@ -53,9 +57,11 @@ bool changeFacultyPassword(int clientConnectionFD, struct Faculty *reqFaculty) {
             writeBytes = write(facultyFD, &faculty, sizeof(faculty));
             if(writeBytes == -1) {
                 perror(ERROR_WRITING_FACULTY_DB);
+                release_lock(facultyFD);
                 close(facultyFD);
                 return false;
             }
+            release_lock(facultyFD);
             
             reqFaculty->fId = faculty.fId;
             reqFaculty->active = faculty.active;
@@ -76,7 +82,7 @@ bool changeFacultyPassword(int clientConnectionFD, struct Faculty *reqFaculty) {
     if(writeBytes == -1) {
         perror(ERROR_WRITING_RESPONSE);
     }
-
+    release_lock(facultyFD);
     close(facultyFD);
     return false;
 }
@@ -137,6 +143,7 @@ void addCourse(int clientConnectionFD, struct Faculty *reqFaculty) {
         }
         return;
     }
+    acquire_write_lock(trackFD);
 
     struct Track track;
     lseek(trackFD, 2*sizeof(track), SEEK_SET);
@@ -154,6 +161,7 @@ void addCourse(int clientConnectionFD, struct Faculty *reqFaculty) {
 
     lseek(trackFD, 2*sizeof(track), SEEK_SET);
     write(trackFD, &track, sizeof(track));
+    release_lock(trackFD);
 
     // Opens the database to store the new course information into the system and create its respective database file
     char databaseFile[50];
@@ -174,6 +182,7 @@ void addCourse(int clientConnectionFD, struct Faculty *reqFaculty) {
         }
         return;
     }
+    acquire_write_lock(courseFD);
 
     writeBytes = write(courseFD, &newCourse, sizeof(newCourse));
     if(writeBytes == -1) {
@@ -186,10 +195,12 @@ void addCourse(int clientConnectionFD, struct Faculty *reqFaculty) {
             perror(ERROR_WRITING_TO_CLIENT);
             return;
         }
+        release_lock(courseFD);
         close(trackFD);
         close(courseFD);
         return;
     }
+    release_lock(courseFD);
 
     bzero(writeBuf, sizeof(writeBuf));
     sprintf(writeBuf, COURSE_ADDED, newCourse.cId);
@@ -261,6 +272,7 @@ void viewAllFacultyCourses(int clientConnectionFD, struct Faculty *reqFaculty) {
         }
         return;
     }
+    acquire_read_lock(courseFD);
 
     // If that course is offered by the currently logged in faculty then it is shown to user
     strcpy(writeBuf, COURSE_LIST_HEADING);
@@ -272,6 +284,7 @@ void viewAllFacultyCourses(int clientConnectionFD, struct Faculty *reqFaculty) {
             strcat(writeBuf, tempBuf);
         }
     }
+    release_lock(courseFD);
 
     writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
     if(writeBytes == -1) {
@@ -322,6 +335,7 @@ void removeCourse(int clientConnectionFD, struct Faculty *reqFaculty) {
         }
         return;
     }
+    acquire_write_lock(courseFD);
 
     while((readBytes = read(courseFD, &course, sizeof(course))) != 0) {
         if(course.cId == atoi(readBuf) && course.fId == reqFaculty->fId && course.active == 1) break;
@@ -334,9 +348,8 @@ void removeCourse(int clientConnectionFD, struct Faculty *reqFaculty) {
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
             perror(ERROR_WRITING_RESPONSE);
-            close(courseFD);
-            return;
         }
+        release_lock(courseFD);
         close(courseFD);
         return;
     }
@@ -347,9 +360,11 @@ void removeCourse(int clientConnectionFD, struct Faculty *reqFaculty) {
     writeBytes = write(courseFD, &course, sizeof(course));
     if(writeBytes == -1) {
         perror(ERROR_WRITING_COURSE_DB);
+        release_lock(courseFD);
         close(courseFD);
         return;
     }
+    release_lock(courseFD);
 
     bzero(writeBuf, sizeof(writeBuf));
     strcpy(writeBuf, SUCCESS_DELETE_COURSE);
@@ -408,6 +423,7 @@ void updateCourseDetail(int clientConnectionFD, struct Faculty *reqFaculty) {
         }
         return;
     }
+    acquire_write_lock(courseFD);
 
     // Finds the course and checks if its a course offered by same faculty which is logged in or not
     while((readBytes = read(courseFD, &course, sizeof(course))) != 0) {
@@ -420,9 +436,8 @@ void updateCourseDetail(int clientConnectionFD, struct Faculty *reqFaculty) {
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
             perror(ERROR_WRITING_RESPONSE);
-            close(courseFD);
-            return;
         }
+        release_lock(courseFD);
         close(courseFD);
         return;
     }
@@ -467,11 +482,12 @@ void updateCourseDetail(int clientConnectionFD, struct Faculty *reqFaculty) {
         int newTotalSeats = atoi(readBuf);
         if(newTotalSeats <= 0) {
             bzero(writeBuf, sizeof(writeBuf));
-            strcpy(writeBuf, "# Total number of seats cannot be xero and in negative\n");
+            strcpy(writeBuf, "# Total number of seats cannot be zero and in negative\n");
             writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
             if(writeBytes == -1) {
                 perror(ERROR_WRITING_RESPONSE);
             }
+            release_lock(courseFD);
             close(courseFD);
             return;
         }
@@ -508,6 +524,7 @@ void updateCourseDetail(int clientConnectionFD, struct Faculty *reqFaculty) {
                     close(courseFD);
                     return;
                 }
+                acquire_write_lock(courseDbFD);
                 struct Enroll enroll;
                 lseek(courseDbFD, -1*sizeof(enroll), SEEK_END);
 
@@ -534,7 +551,7 @@ void updateCourseDetail(int clientConnectionFD, struct Faculty *reqFaculty) {
                 if(writeBytes == -1) {
                     perror(ERROR_WRITING_RESPONSE);
                 }
-
+                release_lock(courseDbFD);
                 close(courseDbFD);
             }
         }
@@ -544,9 +561,11 @@ void updateCourseDetail(int clientConnectionFD, struct Faculty *reqFaculty) {
     writeBytes = write(courseFD, &course, sizeof(course));
     if(writeBytes == -1) {
         perror(ERROR_WRITING_COURSE_DB);
+        release_lock(courseFD);
         close(courseFD);
         return;
     }
+    release_lock(courseFD);
 
     bzero(writeBuf, sizeof(writeBuf));
     strcpy(writeBuf, "\n# Successfully modified the course\n");

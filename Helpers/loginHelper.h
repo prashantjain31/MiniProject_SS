@@ -17,6 +17,8 @@
 #include "../Helpers/constantStrings.h"
 #include "../Helpers/adminCredentials.h"
 #include "../Helpers/readWriteHelper.h"
+#include "../Helpers/writeLock.h"
+#include "../Helpers/releaseLock.h"
 
 /*
 * @param clientConnectionFD An file descriptor for the client connection
@@ -90,6 +92,7 @@ bool loginHandler(int clientConnectionFD, int loginType, struct Student *reqStud
             perror(ERROR_OPEN_STUDENT);
             return false;
         }
+        acquire_write_lock(studentFD);
 
         struct Student student;
         while((readBytes = read(studentFD, &student, sizeof(student))) != 0) {
@@ -102,8 +105,9 @@ bool loginHandler(int clientConnectionFD, int loginType, struct Student *reqStud
                     write(clientConnectionFD, writeBuf, sizeof(writeBuf));
                     if(writeBytes == -1) {
                         perror(ERROR_WRITING_TO_CLIENT);
-                        return false;
                     }
+                    release_lock(studentFD);
+                    close(studentFD);
                     return false;
                 }
                 // if student is online cannot login again
@@ -113,8 +117,9 @@ bool loginHandler(int clientConnectionFD, int loginType, struct Student *reqStud
                     write(clientConnectionFD, writeBuf, sizeof(writeBuf));
                     if(writeBytes == -1) {
                         perror(ERROR_WRITING_TO_CLIENT);
-                        return false;
                     }
+                    release_lock(studentFD);
+                    close(studentFD);
                     return false;
                 }
                 // Checks if password is correct if yes then set that student online and writes it data in respective object.
@@ -134,7 +139,8 @@ bool loginHandler(int clientConnectionFD, int loginType, struct Student *reqStud
                         close(studentFD);
                         return false;
                     }
-                    
+                    release_lock(studentFD);
+
                     reqStudent->sId = student.sId;
                     reqStudent->active = student.active;
                     reqStudent->online = student.online;
@@ -147,10 +153,12 @@ bool loginHandler(int clientConnectionFD, int loginType, struct Student *reqStud
                     close(studentFD);
                     return true;
                 }
+                release_lock(studentFD);
                 close(studentFD);
                 return false;
             }
         }
+        release_lock(studentFD);
         close(studentFD);
         return false;
     } else if(loginType == 2) {
@@ -165,6 +173,7 @@ bool loginHandler(int clientConnectionFD, int loginType, struct Student *reqStud
             perror(ERROR_OPEN_FACULTY);
             return false;
         }
+        acquire_write_lock(facultyFD);
 
         struct Faculty faculty;
         while((readBytes = read(facultyFD, &faculty, sizeof(faculty))) != 0) {
@@ -177,8 +186,9 @@ bool loginHandler(int clientConnectionFD, int loginType, struct Student *reqStud
                     write(clientConnectionFD, writeBuf, sizeof(writeBuf));
                     if(writeBytes == -1) {
                         perror(ERROR_WRITING_TO_CLIENT);
-                        return false;
                     }
+                    release_lock(facultyFD);
+                    close(facultyFD);
                     return false;
                 }
 
@@ -189,8 +199,9 @@ bool loginHandler(int clientConnectionFD, int loginType, struct Student *reqStud
                     write(clientConnectionFD, writeBuf, sizeof(writeBuf));
                     if(writeBytes == -1) {
                         perror(ERROR_WRITING_TO_CLIENT);
-                        return false;
                     }
+                    release_lock(facultyFD);
+                    close(facultyFD);
                     return false;
                 }
 
@@ -211,6 +222,7 @@ bool loginHandler(int clientConnectionFD, int loginType, struct Student *reqStud
                         close(facultyFD);
                         return false;
                     }
+                    release_lock(facultyFD);
                     
                     reqFaculty->fId = faculty.fId;
                     reqFaculty->active = faculty.active;
@@ -224,10 +236,12 @@ bool loginHandler(int clientConnectionFD, int loginType, struct Student *reqStud
                     close(facultyFD);
                     return true;
                 }
+                release_lock(facultyFD);
                 close(facultyFD);
                 return false;
             }
         }
+        release_lock(facultyFD);
         close(facultyFD);
         return false;
     } else {

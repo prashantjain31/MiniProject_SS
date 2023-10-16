@@ -17,6 +17,9 @@
 #include "../Helpers/constantStrings.h"
 #include "../Helpers/loginHelper.h"
 #include "../Helpers/logoutHelper.h"
+#include "../Helpers/readLock.h"
+#include "../Helpers/writeLock.h"
+#include "../Helpers/releaseLock.h"
 
 /*
 * @param clientConnectionFD An file descriptor for the client connection
@@ -39,6 +42,7 @@ bool changeStudentPassword(int clientConnectionFD, struct Student *reqStudent) {
         perror(ERROR_OPEN_STUDENT);
         return false;
     }
+    acquire_write_lock(studentFD);
 
     struct Student student;
     while((readBytes = read(studentFD, &student, sizeof(student))) != 0) {
@@ -53,10 +57,12 @@ bool changeStudentPassword(int clientConnectionFD, struct Student *reqStudent) {
             writeBytes = write(studentFD, &student, sizeof(student));
             if(writeBytes == -1) {
                 perror(ERROR_WRITING_STUDENT_DB);
+                release_lock(studentFD);
                 close(studentFD);
                 return false;
             }
-            
+            release_lock(studentFD);
+
             reqStudent->sId = student.sId;
             reqStudent->active = student.active;
             reqStudent->online = student.online;
@@ -70,6 +76,7 @@ bool changeStudentPassword(int clientConnectionFD, struct Student *reqStudent) {
             return true;
         }
     }
+    release_lock(studentFD);
 
     bzero(writeBuf, sizeof(writeBuf));
     strcpy(writeBuf, UNABLE_UPDATE_PASSWORD);
@@ -122,6 +129,7 @@ void enrollCourse(int clientConnectionFD, struct Student *reqStudent) {
         }
         return;
     }
+    acquire_read_lock(courseFD);
 
     while((readBytes = read(courseFD, &course, sizeof(course))) != 0) {
         if(course.cId == atoi(readBuf) && course.active == 1) break;
@@ -133,9 +141,8 @@ void enrollCourse(int clientConnectionFD, struct Student *reqStudent) {
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
             perror(ERROR_WRITING_TO_CLIENT);
-            close(courseFD);
-            return;
         }
+        release_lock(courseFD);
         close(courseFD);
         return;
     }
@@ -147,9 +154,8 @@ void enrollCourse(int clientConnectionFD, struct Student *reqStudent) {
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
             perror(ERROR_WRITING_TO_CLIENT);
-            close(courseFD);
-            return;
         }
+        release_lock(courseFD);
         close(courseFD);
         return;
     }
@@ -173,6 +179,7 @@ void enrollCourse(int clientConnectionFD, struct Student *reqStudent) {
         }
         return;
     }
+    acquire_write_lock(courseDbFD);
 
     struct Enroll enrolled;
     while((readBytes = read(courseDbFD, &enrolled, sizeof(enrolled))) != 0) {
@@ -189,6 +196,8 @@ void enrollCourse(int clientConnectionFD, struct Student *reqStudent) {
         writeBytes = write(courseDbFD, &newEnroll, sizeof(newEnroll));
         if(writeBytes == -1) {
             perror(ERROR_ENROLLING_STUDENT);
+            release_lock(courseDbFD);
+            release_lock(courseFD);
             close(courseFD);
             close(courseDbFD);
             return;
@@ -200,10 +209,14 @@ void enrollCourse(int clientConnectionFD, struct Student *reqStudent) {
         writeBytes = write(courseFD, &course, sizeof(course));
         if(writeBytes == -1) {
             perror(ERROR_WRITING_COURSE_DB);
+            release_lock(courseDbFD);
+            release_lock(courseFD);
             close(courseFD);
             close(courseDbFD);
             return;
         }
+        release_lock(courseDbFD);
+        release_lock(courseFD);
 
         bzero(writeBuf, sizeof(writeBuf));
         strcpy(writeBuf, "\n# Successfully enrolled in the course\n");
@@ -216,6 +229,8 @@ void enrollCourse(int clientConnectionFD, struct Student *reqStudent) {
         close(courseDbFD);
         return;
     }
+    release_lock(courseDbFD);
+    release_lock(courseFD);
 
     bzero(writeBuf, sizeof(writeBuf));
     strcpy(writeBuf, "\n# Already enrolled in the course.\n");
@@ -264,6 +279,7 @@ void viewAllCourses(int clientConnectionFD, struct Student *reqStudent) {
         }
         return;
     }
+    acquire_read_lock(courseFD);
 
     strcpy(writeBuf, COURSE_LIST_HEADING);
     while((readBytes = read(courseFD, &course, sizeof(course))) != 0) {
@@ -274,6 +290,7 @@ void viewAllCourses(int clientConnectionFD, struct Student *reqStudent) {
             strcat(writeBuf, tempBuf);
         }
     }
+    release_lock(courseFD);
 
     writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
     if(writeBytes == -1) {
@@ -324,6 +341,7 @@ void dropCourse(int clientConnectionFD, struct Student *reqStudent) {
         }
         return;
     }
+    acquire_write_lock(courseFD);
 
     while((readBytes = read(courseFD, &course, sizeof(course))) != 0) {
         if(course.cId == atoi(readBuf) && course.active == 1) break;
@@ -335,9 +353,8 @@ void dropCourse(int clientConnectionFD, struct Student *reqStudent) {
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
             perror(ERROR_WRITING_TO_CLIENT);
-            close(courseFD);
-            return;
         }
+        release_lock(courseFD);
         close(courseFD);
         return;
     }
@@ -357,10 +374,11 @@ void dropCourse(int clientConnectionFD, struct Student *reqStudent) {
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
             perror(ERROR_REPORTING_LOGOUT_MESSAGE);
-            return;
         }
+        release_lock(courseFD);
         return;
     }
+    acquire_write_lock(courseDbFD);
 
     struct Enroll enrolled;
     while((readBytes = read(courseDbFD, &enrolled, sizeof(enrolled))) != 0) {
@@ -375,6 +393,8 @@ void dropCourse(int clientConnectionFD, struct Student *reqStudent) {
         writeBytes = write(courseDbFD, &enrolled, sizeof(enrolled));
         if(writeBytes == -1) {
             perror(ERROR_DROP_COURSE);
+            release_lock(courseDbFD);
+            release_lock(courseFD);
             close(courseFD);
             close(courseDbFD);
             return;
@@ -386,10 +406,14 @@ void dropCourse(int clientConnectionFD, struct Student *reqStudent) {
         writeBytes = write(courseFD, &course, sizeof(course));
         if(writeBytes == -1) {
             perror(ERROR_WRITING_COURSE_DB);
+            release_lock(courseDbFD);
+            release_lock(courseFD);
             close(courseFD);
             close(courseDbFD);
             return;
         }
+        release_lock(courseDbFD);
+        release_lock(courseFD);
 
         bzero(writeBuf, sizeof(writeBuf));
         strcpy(writeBuf, "\n# Successfully dropped the course\n");
@@ -408,10 +432,9 @@ void dropCourse(int clientConnectionFD, struct Student *reqStudent) {
     writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
     if(writeBytes == -1) {
         perror(ERROR_WRITING_TO_CLIENT);
-        close(courseDbFD);
-        close(courseFD);
-        return;
     }
+    release_lock(courseDbFD);
+    release_lock(courseFD);
     close(courseFD);
     close(courseDbFD);
 }
@@ -454,20 +477,20 @@ void viewEnrolledCourseDetail(int clientConnectionFD, struct Student *reqStudent
         }
         return;
     }
+    acquire_read_lock(courseFD);
 
     while((readBytes = read(courseFD, &course, sizeof(course))) != 0) {
         if(course.cId == atoi(readBuf) && course.active == 1) break;
     }
 
     bzero(writeBuf, sizeof(writeBuf));
-    if(readBytes == 0) {    
+    if(readBytes == 0) {
         sprintf(writeBuf, UNABLE_FIND_COURSE_GLOBAL, cid);
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
             perror(ERROR_WRITING_RESPONSE);
-            close(courseFD);
-            return;
         }
+        release_lock(courseFD);
         close(courseFD);
         return;
     }
@@ -486,10 +509,11 @@ void viewEnrolledCourseDetail(int clientConnectionFD, struct Student *reqStudent
         writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
         if(writeBytes == -1) {
             perror(ERROR_REPORTING_LOGOUT_MESSAGE);
-            return;
         }
+        release_lock(courseFD);
         return;
     }
+    acquire_read_lock(courseDbFD);
 
     struct Enroll enrolled;
     while((readBytes = read(courseDbFD, &enrolled, sizeof(enrolled))) != 0) {
@@ -505,11 +529,14 @@ void viewEnrolledCourseDetail(int clientConnectionFD, struct Student *reqStudent
         if(writeBytes == -1) {
             perror(ERROR_WRITING_RESPONSE);
         }
-
+        release_lock(courseDbFD);
+        release_lock(courseFD);
         close(courseFD);
         close(courseDbFD);
         return;
     }
+    release_lock(courseDbFD);
+    release_lock(courseFD);
 
     bzero(writeBuf, sizeof(writeBuf));
     sprintf(writeBuf, COURSE_DETAILS_PRINT
@@ -544,7 +571,7 @@ void viewAllEnrolledCourses(int clientConnectionFD, struct Student *reqStudent) 
     strcpy(databaseFile, DATABASE_PATH);
     strcat(databaseFile, COURSE_DATABASE);
 
-    int courseFD = open(databaseFile, O_CREAT | O_RDWR, 0777);
+    int courseFD = open(databaseFile, O_CREAT | O_RDONLY, 0777);
     if(courseFD == -1) {
         perror(ERROR_OPEN_COURSE);
 
@@ -558,6 +585,7 @@ void viewAllEnrolledCourses(int clientConnectionFD, struct Student *reqStudent) 
         }
         return;
     }
+    acquire_read_lock(courseFD);
 
     bzero(writeBuf, sizeof(writeBuf));
     strcpy(writeBuf, COURSE_LIST_HEADING);
@@ -567,11 +595,12 @@ void viewAllEnrolledCourses(int clientConnectionFD, struct Student *reqStudent) 
         char courseDatabaseFile[50];
         strcpy(courseDatabaseFile, DATABASE_PATH);
         strcat(courseDatabaseFile, course.databasePath);
-        int courseDbFD = open(courseDatabaseFile, O_CREAT | O_RDWR, 0777);
+        int courseDbFD = open(courseDatabaseFile, O_CREAT | O_RDONLY, 0777);
         if(courseDbFD == -1) {
             perror(ERROR_OPEN_COURSE);
             continue;
         }
+        acquire_read_lock(courseDbFD);
 
         struct Enroll enroll;
         while((readBytes = read(courseDbFD, &enroll, sizeof(enroll))) != 0) {
@@ -582,8 +611,10 @@ void viewAllEnrolledCourses(int clientConnectionFD, struct Student *reqStudent) 
             sprintf(tempBuf, "Course Id: %d\n", course.cId);
             strcat(writeBuf, tempBuf);
         }
+        release_lock(courseDbFD);
         close(courseDbFD);
     }
+    release_lock(courseFD);
 
     writeBytes = write(clientConnectionFD, writeBuf, sizeof(writeBuf));
     if(writeBytes == -1) {

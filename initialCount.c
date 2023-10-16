@@ -6,6 +6,8 @@
 
 #include "./Models/track_struct.h"
 #include "./Helpers/constantStrings.h"
+#include "./Helpers/writeLock.h"
+#include "./Helpers/releaseLock.h"
 
 // This program sets the basic track file to generate unique ids.
 int main() {
@@ -21,6 +23,7 @@ int main() {
         perror("!! Error occurred while opening track file !!");
         _exit(0);
     }
+    acquire_write_lock(trackFD);
 
     struct Track student, course, faculty;
 
@@ -50,6 +53,7 @@ int main() {
     printf("name: %s and id: %d\n", temp.name, temp.uid);
     read(trackFD, &temp, sizeof(temp));
     printf("name: %s and id: %d\n", temp.name, temp.uid);
+    release_lock(trackFD);
 
     return 0;
 }

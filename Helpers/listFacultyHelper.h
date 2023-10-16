@@ -13,7 +13,8 @@
 
 #include "./constantStrings.h"
 #include "../Models/faculty_struct.h"
-
+#include "./readLock.h"
+#include "./releaseLock.h"
 
 /*
 * @param clientConnectionFD An file descriptor for the client connection
@@ -45,6 +46,7 @@ void listFaculty(int clientConnectionFD, char *writeBuf, int writeSize) {
         }
         return;
     }
+    acquire_read_lock(facultyFD);
 
     // Reading database and creating the faculty list and storing the data into the writeBuffer
     struct Faculty faculty;
@@ -55,7 +57,8 @@ void listFaculty(int clientConnectionFD, char *writeBuf, int writeSize) {
         sprintf(tempBuf, "%s -> %s\n", faculty.fLogin, faculty.fName);
         strcat(writeBuf, tempBuf);
     }
-
+    release_lock(facultyFD);
+    close(facultyFD);
     return;
 }
 
