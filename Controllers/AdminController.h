@@ -12,6 +12,7 @@
 #include <errno.h>
 
 #include "../Models/student_struct.h"
+#include "../Models/faculty_struct.h"
 #include "../Models/enroll_struct.h"
 #include "../Models/track_struct.h"
 #include "../Helpers/constantStrings.h"
